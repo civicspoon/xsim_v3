@@ -192,7 +192,7 @@ export default function DualViewEditor() {
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans" onMouseUp={() => setIsDragging(false)}>
+        <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans rounded-2xl" onMouseUp={() => setIsDragging(false)}>
             
             <div className="flex-1 p-4 pb-40 overflow-y-auto">
                 {/* 1. TOP SELECTION BAR */}
@@ -220,7 +220,7 @@ export default function DualViewEditor() {
                 <div className="flex gap-4 mb-6 bg-slate-900/80 p-4 rounded-xl border border-slate-800 justify-center">
                     {['bgTop', 'bgSide'].map(key => (
                         <div key={key} className="flex flex-col gap-1 px-4 border-r last:border-0 border-slate-700">
-                            <span className="text-[10px] font-bold text-orange-500 uppercase">{key === 'bgTop' ? 'Top View BG' : 'Side View BG'}</span>
+                            <span className="text-[16px] font-bold text-orange-500 uppercase">{key === 'bgTop' ? 'Top View BG' : 'Side View BG'}</span>
                             <input type="file" className="text-[10px]" onChange={e => {
                                 if (e.target.files[0]) {
                                     const img = new Image(); img.onload = () => setImages(p => ({ ...p, [key]: img }));
@@ -245,7 +245,7 @@ export default function DualViewEditor() {
             </div>
 
             {/* Sidebar */}
-            <div className="w-80 bg-slate-900 border-l border-slate-800 p-4 flex flex-col shadow-2xl z-20">
+            <div className="w-80 bg-slate-900 border-l border-slate-800 p-4 flex flex-col shadow-2xl z-20 rounded-2xl">
                 <h2 className="text-orange-500 font-black text-lg mb-4 border-b border-slate-800 pb-2 italic text-center uppercase tracking-tighter">X-SIM V3 REGISTRY</h2>
                 <CategorySelect categories={categories} value={selectedCategoryId} onChange={setSelectedCategoryId} skipFirst={true} className="mb-6 text-black" />
                 <div className="flex-1 overflow-y-auto space-y-2">

@@ -188,6 +188,101 @@ export default function Page() {
 		} catch (err) { console.error(err); }
 	};
 
+	/// AFK
+	// เพิ่มสถานะใหม่ในส่วนของ State
+	const [afkStrikes, setAfkStrikes] = useState(0);
+	const afkTimerRef = useRef(null);
+	const AFK_LIMIT = 60; // 60 วินาที
+
+	// 1. ฟังก์ชันปลดล็อก AFK เมื่อมีการขยับ
+	const resetAfkTimer = () => {
+		if (afkTimerRef.current) {
+			clearTimeout(afkTimerRef.current);
+		}
+		// ตั้งเวลาใหม่ 60 วินาที
+		afkTimerRef.current = setTimeout(() => {
+			handleAfkDetected();
+		}, AFK_LIMIT * 1000);
+	};
+
+	// 2. ฟังก์ชันจัดการเมื่อเกิด AFK
+	const handleAfkDetected = () => {
+		// หยุด Animation และเวลาหลัก
+		leftCanvasRef.current.isPaused = true;
+		rightCanvasRef.current.isPaused = true;
+
+		setAfkStrikes((prev) => {
+			const newStrikes = prev + 1;
+
+			if (newStrikes >= 3) {
+				Swal.fire({
+					title: '<span class="text-4xl font-bold">ถูกออกจากระบบ</span>',
+					html: '<p class="text-2xl mt-4">คุณไม่มีการตอบสนองเกิน 3 ครั้ง<br/>ระบบจะนำคุณกลับหน้าเข้าสู่ระบบ</p>',
+					icon: "error",
+					confirmButtonText: '<span class="text-2xl px-6">ตกลง</span>',
+					customClass: {
+						popup: 'rounded-3xl border-4 border-red-500',
+						confirmButton: 'bg-red-600 hover:bg-red-700 py-3'
+					}
+				}).then(() => {
+					window.location.href = "/";
+				});
+			} else {
+				Swal.fire({
+					title: '<span class="text-4xl font-bold text-yellow-600">ตรวจพบ AFK</span>',
+					html: `
+                    <p class="text-2xl mt-4">คุณไม่ได้ตอบสนองนานเกินไป</p>
+                    <p class="text-3xl font-bold mt-2 text-red-500">(ครั้งที่ ${newStrikes}/3)</p>
+                `,
+					icon: "warning",
+					confirmButtonText: '<span class="text-2xl px-8">คลิกเพื่อทำงานต่อ</span>',
+					allowOutsideClick: false,
+					customClass: {
+						popup: 'rounded-3xl border-4 border-yellow-500',
+						confirmButton: 'bg-yellow-600 hover:bg-yellow-700 py-4'
+					}
+				}).then(() => {
+					// กลับมาทำงานต่อ
+					leftCanvasRef.current.isPaused = false;
+					rightCanvasRef.current.isPaused = false;
+					resetAfkTimer();
+				});
+			}
+			return newStrikes;
+		});
+	};
+
+	// 3. ใช้ useEffect ติดตาม Event ทั่วทั้งหน้าจอ
+	useEffect(() => {
+		window.addEventListener("mousemove", resetAfkTimer);
+		window.addEventListener("keydown", resetAfkTimer);
+		window.addEventListener("click", resetAfkTimer);
+
+		resetAfkTimer(); // เริ่มนับครั้งแรก
+
+		return () => {
+			window.removeEventListener("mousemove", resetAfkTimer);
+			window.removeEventListener("keydown", resetAfkTimer);
+			window.removeEventListener("click", resetAfkTimer);
+			if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
+		};
+	}, []);
+
+	// 4. แก้ไขส่วนของ Timer เดิม (timeLeft) 
+	// ตรวจสอบให้แน่ใจว่า Timer จะไม่ลดลงถ้า Canvas ถูก Pause (AFK อยู่)
+	useEffect(() => {
+		const timer = setInterval(() => {
+			// เช็คว่าถ้าไม่ใช่ช่วง Pause หรือ AFK ให้ลดเวลาลง
+			if (!leftCanvasRef.current?.isPaused && timeLeft > 0) {
+				setTimeLeft((prev) => prev - 1);
+			}
+		}, 1000);
+
+		return () => clearInterval(timer);
+	}, [timeLeft]);
+
+	///
+
 	const fetchImages = async () => {
 		try {
 			const res = await fetch(`${API_URL}/cbt/random/${area}`);
@@ -210,8 +305,15 @@ export default function Page() {
 		} catch (err) { console.error(err); }
 	};
 
-	const nextImage = () => {
-		// ✨ Reset zoom and states on every transition
+	const nextImage = (isAnswered = false) => {
+		// 1. ถ้าเปลี่ยนภาพโดยไม่ได้กด Answer (isAnswered เป็น false)
+		if (!isAnswered) {
+			setFars(f => f + 1);
+			// สามารถเพิ่ม Swal เล็กๆ เตือนได้ว่า "Missed Image!"
+			console.log("Image exited without answer: Marked as Incorrect");
+		}
+
+		// ✨ Reset zoom and states
 		leftCanvasRef.current.resetZoom();
 		rightCanvasRef.current.resetZoom();
 		setSelectedAnswer("");
@@ -219,7 +321,6 @@ export default function Page() {
 		setClicked(false);
 
 		if (imageIndex >= imageList.length - 1) {
-			console.log("Looping: Fetching new batch...");
 			setImageIndex(0);
 			fetchImages();
 			return;
@@ -232,6 +333,7 @@ export default function Page() {
 
 	const checkAnswer = () => {
 		if (!imageList.length || isFinished) return;
+
 		const currentImage = imageList[imageIndex];
 		const correctId = currentImage?.itemCategoryID;
 		let isCorrect = (parseInt(selectedAnswer) === correctId);
@@ -239,17 +341,22 @@ export default function Page() {
 		if (correctId !== 1 && !lastClickInside) isCorrect = false;
 
 		if (isCorrect) {
-			setScore(s => s + 1); setHits(h => h + 1);
+			setScore(s => s + 1);
+			setHits(h => h + 1);
 			Swal.fire({ title: "✅ Correct!", timer: 800, showConfirmButton: false, icon: "success" });
 		} else {
 			setFars(f => f + 1);
 			Swal.fire({ title: "❌ Wrong!", timer: 800, showConfirmButton: false, icon: "error" });
 		}
-		nextImage();
+
+		// ส่ง true เพื่อบอกว่ากดยืนยันคำตอบแล้ว ไม่ต้องโดนทำโทษซ้ำ
+		nextImage(true);
 	};
 
+
 	useEffect(() => {
-		leftCanvasRef.current = new _Canvas("canvasLeft", -820, 0, () => nextImage());
+
+		leftCanvasRef.current = new _Canvas("canvasLeft", -820, 0, () => nextImage(false));
 		rightCanvasRef.current = new _Canvas("canvasRight", -820, 0, () => { });
 
 		rightCanvasRef.current.debugOffsetY = 175;
@@ -421,16 +528,16 @@ export default function Page() {
 			<div className="h-[80px] bg-gray-900 flex items-center justify-around text-white border-t border-gray-700 px-10">
 				<div className="text-4xl font-mono text-yellow-500">{formatTime(timeLeft)}</div>
 				<div className="text-lg font-semibold uppercase tracking-wider">
-					{user?.fname} {user?.lname} | Score: <span className="text-2xl text-green-400">{score}</span> | Progress: {imageIndex + 1}/{imageList.length}
+					{user?.fname} {user?.lname} | Score: <span className="text-2xl text-green-400">{score}</span> | AFK : {afkStrikes}/3
 				</div>
 				<div className="flex gap-10">
 					<div className="flex flex-col items-center">
-						<span className="text-[10px] text-gray-400 uppercase">Hit Rate</span>
+						<span className="text-xl text-gray-400 uppercase">Hit Rate</span>
 						<span className="text-2xl font-bold text-green-400">{(hits / (hits + fars + 0.0001) * 100).toFixed(0)}%</span>
 					</div>
 					<div className="flex flex-col items-center">
-						<span className="text-[10px] text-gray-400 uppercase">False Alarm</span>
-						<span className="text-2xl font-bold text-red-400">{(fars / (hits + fars + 0.0001) * 100).toFixed(0)}%</span>
+						<span className="text-xl text-gray-400 uppercase">False Alarm</span>
+						<span className="text-2xl font-bol text-red-400">{(fars / (hits + fars + 0.0001) * 100).toFixed(0)}%</span>
 					</div>
 				</div>
 			</div>

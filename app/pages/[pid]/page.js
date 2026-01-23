@@ -3,6 +3,9 @@ import Dashboard from "@/app/pageComponents/Dashboard";
 import { useParams } from "next/navigation";
 import CreateImage from "@/app/components/CreateImage";
 import ItemRegistoration from "@/app/components/ItemRegistoration";
+import SelectionPage from "@/app/components/SelectionPage";
+import BaggageImageGallery from "@/app/components/BaggageImageGallery";
+import AreaGallerySelection from "@/app/components/AreaGallerySelection";
 
 export default function DynamicPage() {
   const { pid } = useParams();
@@ -16,7 +19,12 @@ export default function DynamicPage() {
         return <CreateImage />
       case 'ItemRegistoration':
         return <ItemRegistoration />
-
+      case 'selection':
+        return <SelectionPage />
+      case 'gallery':
+        return <AreaGallerySelection />
+        case 'baggagegallery':
+        return <BaggageImageGallery />
       default:
         return (
           <div className="p-1 text-center text-slate-500  overflow-hidden">
