@@ -26,6 +26,43 @@ class _Canvas {
         this.animating = false;
         this.lastDraw = { x: 0, y: 0, w: 0, h: 0 };
         this.debugOffsetY = 0;
+
+        // --- Added for Zoom & Drag ---
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.isDragging = false;
+        this.startX = 0;
+        this.startY = 0;
+
+        this.initInteraction();
+    }
+
+    // --- Added Mouse Interaction ---
+    initInteraction() {
+        this.canvas.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            this.scale = Math.max(0.5, Math.min(5, this.scale + delta));
+            this.redraw();
+        });
+
+        this.canvas.addEventListener("mousedown", (e) => {
+            this.isDragging = true;
+            this.startX = e.offsetX - this.offsetX;
+            this.startY = e.offsetY - this.offsetY;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!this.isDragging) return;
+            const rect = this.canvas.getBoundingClientRect();
+            this.offsetX = (e.clientX - rect.left) - this.startX;
+            this.offsetY = (e.clientY - rect.top) - this.startY;
+            this.redraw();
+        });
+
+        window.addEventListener("mouseup", () => {
+            this.isDragging = false;
+        });
     }
 
     start(w, h) {
@@ -43,7 +80,8 @@ class _Canvas {
         try {
             const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
             await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-            this.originalImage = img; this.imageX = -img.width;
+            this.originalImage = img;
+            this.imageX = -img.width;
             this.imageY = (this.canvas.height - (img.height * this.scale)) / 2;
             this.redraw();
         } catch (err) { console.error("Load Error:", err); }
@@ -54,10 +92,22 @@ class _Canvas {
         if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
         this.animating = true; this.imageX = -this.originalImage.width; this.isPaused = false;
         const step = () => {
-            if (!this.isPaused) { this.imageX += speed; this.redraw(); }
+            if (!this.isPaused) {
+                this.imageX += speed;
+                this.redraw();
+            }
+
+            // ✅ EXIT DETECTION LOGIC
             if (this.imageX > this.canvas.width) {
-                this.animating = false; this.animationFrameId = null;
-                if (this.onAnimationEnd) this.onAnimationEnd(); return;
+                console.log(`[${this.domId}] EXIT DETECTED: Image X (${Math.floor(this.imageX)}) > Canvas Width (${this.canvas.width})`);
+                this.animating = false;
+                this.animationFrameId = null;
+
+                if (this.onAnimationEnd) {
+                    console.log(`[${this.domId}] Triggering onAnimationEnd callback...`);
+                    this.onAnimationEnd();
+                }
+                return;
             }
             this.animationFrameId = requestAnimationFrame(step);
         };
@@ -68,7 +118,11 @@ class _Canvas {
         if (!this.originalImage) return;
         const img = this.originalImage; this.clearScreen();
         const drawW = img.width * this.scale; const drawH = img.height * this.scale;
-        const drawX = this.imageX; const drawY = (this.canvas.height - drawH) / 2;
+
+        // --- Added offsetX/offsetY to draw ---
+        const drawX = this.imageX + this.offsetX;
+        const drawY = ((this.canvas.height - drawH) / 2) + this.offsetY;
+
         this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         this.lastDraw = { x: drawX, y: drawY, w: drawW, h: drawH };
         if (this.iconPosition) {
@@ -78,7 +132,14 @@ class _Canvas {
         }
     }
 
-    resetZoom() { this.scale = 1; this.iconPosition = null; }
+    // --- Modified resetZoom to clear dragging too ---
+    resetZoom() {
+        this.scale = 1;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.iconPosition = null;
+    }
+
     togglePause() { this.isPaused = !this.isPaused; }
     setIcon(x, y) { this.iconPosition = { x, y }; this.redraw(); }
 
@@ -110,69 +171,33 @@ export default function Page() {
     const [categoryStats, setCategoryStats] = useState({});
     const [wrongAnswers, setWrongAnswers] = useState([]);
     const [afkStrikes, setAfkStrikes] = useState(0);
-    const [fullProfile, setFullProfile] = useState(null);
     const leftCanvasRef = useRef(null);
     const rightCanvasRef = useRef(null);
     const [lastClickInside, setLastClickInside] = useState(null);
     const afkTimerRef = useRef(null);
 
-
-    const loadOperator = async () => {
-        try {
-            const profile = await getOperatorProfile();
-            // profile.fullName มาจาก format ที่เราทำไว้ใน util (prefix + fname + lname)
-            setOperatorName(profile.fullName);
-        } catch (err) {
-            console.error("Auth Error:", err);
-            if (err.message === "SESSION_EXPIRED" || err.message === "NO_TOKEN") {
-                setOperatorName("Session Expired");
-                // router.push("/login");
-            } else {
-                setOperatorName("Unknown Operator");
-            }
-        }
-    };
     // Initial Load
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
-                // 1. โหลดข้อมูล Operator ก่อน เพื่อให้ได้ userID และ Profile
-                let currentUserId = null;
-                try {
-                    const profile = await getOperatorProfile();
-                    setOperatorName(profile.fullName);
-                    setUser(profile); // เก็บข้อมูล user ตัวเต็มไว้ใน State
-                    currentUserId = profile.userID;
-                } catch (authErr) {
-                    console.error("Auth Error:", authErr);
-                    setOperatorName("Unauthorized");
-                }
+                const profile = await getOperatorProfile();
+                setOperatorName(profile.fullName);
+                setUser(profile);
 
-                // 2. โหลด Categories และ Images พร้อมกัน
                 const [catRes, imgRes] = await Promise.all([
                     fetch(`${API_URL}/itemCategory`),
                     fetch(`${API_URL}/cbt/random/${area}/${typeid || 'all'}`)
                 ]);
 
                 if (!catRes.ok || !imgRes.ok) throw new Error("Metadata fetch failed");
-
                 const categories = await catRes.json();
                 const imgData = await imgRes.json();
 
-                // ตั้งค่า Categories
                 setCategory(categories);
-                if (categories.length > 0) {
-                    setSelectedAnswer(categories[0].id.toString());
-                }
-
-                // ตั้งค่า Image List
+                if (categories.length > 0) setSelectedAnswer(categories[0].id.toString());
                 setImageList(Array.isArray(imgData) ? imgData : [imgData]);
-
-            } catch (err) {
-                console.error("Fetch Metadata Error:", err);
-            }
+            } catch (err) { console.error(err); }
         };
-
         fetchMetadata();
     }, [area, typeid]);
 
@@ -260,14 +285,13 @@ export default function Page() {
 
     const nextImage = (wasAnswered = false) => {
         if (!wasAnswered) setFars(f => f + 1);
-        leftCanvasRef.current?.resetZoom(); rightCanvasRef.current?.resetZoom();
 
-        // --- RESET TO DEFAULT SELECTION ---
-        if (category.length > 0) {
-            setSelectedAnswer(category[0].id.toString());
-        } else {
-            setSelectedAnswer("");
-        }
+        // --- Added: Reset Zoom/Pan on next image ---
+        leftCanvasRef.current?.resetZoom();
+        rightCanvasRef.current?.resetZoom();
+
+        if (category.length > 0) setSelectedAnswer(category[0].id.toString());
+        else setSelectedAnswer("");
 
         setLastClickInside(null);
         if (imageIndex >= imageList.length - 1) setImageIndex(0);
@@ -294,7 +318,7 @@ export default function Page() {
             setFars(f => f + 1);
             const correctName = category.find(c => c.id === correctId)?.name || 'Unknown';
             setWrongAnswers(prev => [...prev, {
-                baggageId: currentImage.id, // เก็บ ID ไว้ไป Fetch ต่อ
+                baggageId: currentImage.id,
                 code: currentImage.code,
                 correct: correctName,
                 user: category.find(c => c.id === selectedId)?.name || 'N/A'
@@ -304,95 +328,62 @@ export default function Page() {
         nextImage(true);
     };
 
-    // ... ภายใน Component
-
-    /**
-     * 🚀 ฟังก์ชันจบเกมแบบ Auto-close และ Auto-redirect
-     * @param {boolean} autoSubmit - true เมื่อเวลาหมด (เปลี่ยนหน้าทันที), false เมื่อกดปุ่ม (โชว์ Alert 1 วิแล้วเปลี่ยนหน้า)
-     */
-    // 🚀 ฟังก์ชันจบเกมแบบแก้ไขเรื่องข้อมูลซ้ำซ้อน
-  const finishGame = async (autoSubmit = false) => {
+   const finishGame = async (autoSubmit = false) => {
     const currentEfficiency = parseFloat(((hits / (hits + fars + 0.0001)) * 100).toFixed(1));
-
+    
+    // 🚀 FIX: Logic to return time credit based on accuracy criteria
     let calculatedTimeUse = 0;
-    if (currentEfficiency > 80) calculatedTimeUse = 20;
-    else if (currentEfficiency > 70) calculatedTimeUse = 16;
-    else if (currentEfficiency > 60) calculatedTimeUse = 14;
-    else if (currentEfficiency >= 50) calculatedTimeUse = 12;
+    if (currentEfficiency >= 81) {
+        calculatedTimeUse = 20;
+    } else if (currentEfficiency >= 71) {
+        calculatedTimeUse = 16;
+    } else if (currentEfficiency >= 61) {
+        calculatedTimeUse = 14;
+    } else if (currentEfficiency >= 50) {
+        calculatedTimeUse = 12;
+    } else {
+        calculatedTimeUse = 0;
+    }
 
     const summary = {
         userId: user?.userID || user?.id,
-        score,
-        hits,
+        score, 
+        hits, 
         fars,
         efficiency: currentEfficiency,
-        categoryStats,
+        categoryStats, 
         wrongAnswers,
-        userName: operatorName,       
-        timeUsed: calculatedTimeUse
+        userName: operatorName,
+        timeUsed: calculatedTimeUse // ✅ Now returns the correct credit
     };
 
     setIsFinished(true);
-
     try {
-        // เก็บไว้ใช้หน้า summary
         localStorage.setItem("session_result", JSON.stringify(summary));
-
-        const apiPayload = {
-            ...summary,
-            categoryStats: JSON.stringify(categoryStats),
-            wrongAnswers: JSON.stringify(wrongAnswers)
-        };
-
         const token = localStorage.getItem("token");
-
         await fetch(`${API_URL}/training/save`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${token}` 
             },
-            body: JSON.stringify(apiPayload)
+            body: JSON.stringify({
+                ...summary,
+                categoryStats: JSON.stringify(categoryStats),
+                wrongAnswers: JSON.stringify(wrongAnswers)
+            })
         });
-
-    } catch (err) {
-        console.error("Submission failed:", err);
-        // ถึง error ก็ยังให้ไปหน้า summary
+    } catch (err) { 
+        console.error("Submit error:", err); 
     }
 
-    // ✅ ยิงเสร็จแล้วค่อยเปลี่ยนหน้า
     router.push(`/cbt/${area}/${typeid}/summary`);
 };
-
-
-    /** * ฟังก์ชันสำหรับยกเลิกภารกิจกลางคัน 
-     * เคลียร์ข้อมูลและกลับหน้า Dashboard ทันที 
-     */
-    const abortMission = async () => {
-        const resultAlert = await Swal.fire({
-            title: 'ABORT MISSION?',
-            text: "Current progress will be permanently deleted.",
-            icon: 'error',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            confirmButtonText: 'EXIT TO DASHBOARD',
-            background: '#0a0a0a',
-            color: '#fff',
-            customClass: {
-                popup: 'rounded-[2.5rem] border border-white/10 italic font-sans'
-            }
-        });
-
-        if (resultAlert.isConfirmed) {
-            clearGameSession(); // เคลียร์ session_result
-            router.push("/pages/dashboard");
-        }
-    };
 
     const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-[#050505] text-white  tracking-tighter font-sans overflow-hidden">
+        <div className="flex flex-col h-screen w-screen bg-[#050505] text-white tracking-tighter font-sans overflow-hidden">
             <div className="flex-1 flex overflow-hidden p-2">
                 <div className="flex-1 flex items-center justify-center relative bg-[#0a0a0a] rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden">
                     <div className="flex w-full h-full p-1 gap-1">
@@ -403,7 +394,6 @@ export default function Page() {
 
                 <div className="w-[200px] bg-[#111] m-2 rounded-[2.5rem] flex flex-col gap-6 border border-white/10 p-6 shadow-2xl">
                     <h2 className="text-xs font-black text-red-600 uppercase tracking-widest text-center ">Threat Classification</h2>
-
                     <select
                         className="w-full bg-black border-2 border-white/10 p-3 rounded-2xl text-sm font-black h-[400px] outline-none"
                         size="10"
@@ -415,7 +405,7 @@ export default function Page() {
                         ))}
                     </select>
 
-                    <button onClick={checkAnswer} className="w-full p-6 bg-red-600 hover:bg-red-700 text-2xl font-black  transform hover:skew-x-2 transition-all active:scale-95 shadow-lg shadow-red-600/20 uppercase">
+                    <button onClick={checkAnswer} className="w-full p-6 bg-red-600 hover:bg-red-700 text-2xl font-black transform hover:skew-x-2 transition-all active:scale-95 shadow-lg shadow-red-600/20 uppercase">
                         Confirm
                     </button>
 
@@ -434,10 +424,7 @@ export default function Page() {
                 <div className="h-12 w-[2px] bg-white/10"></div>
                 <div className="text-center min-w-[200px]">
                     <span className="text-[10px] text-red-600 uppercase font-black tracking-widest ">Operator Identity</span>
-                    {/* ✅ แสดงชื่อจาก State operatorName */}
-                    <p className="text-lg font-black uppercase text-white/90 truncate w-full">
-                        {operatorName}
-                    </p>
+                    <p className="text-lg font-black uppercase text-white/90 truncate w-full">{operatorName}</p>
                 </div>
                 <div className="h-12 w-[2px] bg-white/10"></div>
                 <div className="flex gap-12 text-center">
@@ -450,7 +437,7 @@ export default function Page() {
                         <p className="text-4xl font-black text-blue-400">{((hits / (hits + fars + 0.0001)) * 100).toFixed(0)}%</p>
                     </div>
                 </div>
-                <button onClick={finishGame} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase tracking-widest transition-all">Abort Mission</button>
+                <button onClick={() => finishGame()} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase tracking-widest transition-all">Abort Mission</button>
             </div>
         </div>
     );

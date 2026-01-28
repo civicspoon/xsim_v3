@@ -9,6 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3015";
 export default function SummaryPage() {
     const [result, setResult] = useState(null);
     const [operatorName, setOperatorName] = useState("Authenticating...");
+    const [categoryMap, setCategoryMap] = useState({}); // 🚀 Stores ID -> Name mapping
     const [selectedItem, setSelectedItem] = useState(null);
     const [isFetching, setIsFetching] = useState(false);
     const [errorLog, setErrorLog] = useState(null);
@@ -28,6 +29,7 @@ export default function SummaryPage() {
     };
 
     useEffect(() => {
+        // 1. Load Session Result
         const data = localStorage.getItem("session_result");
         if (data) {
             const parsed = JSON.parse(data);
@@ -37,6 +39,25 @@ export default function SummaryPage() {
             setResult(parsed);
         }
 
+        // 2. Fetch Category Names from API 🚀
+        const fetchCategories = async () => {
+            try {
+                const res = await fetch(`${API_URL}/itemCategory`);
+                if (res.ok) {
+                    const data = await res.json();
+                    // Convert array to object: { 1: "Clear", 2: "IED", ... }
+                    const mapping = data.reduce((acc, cat) => {
+                        acc[cat.id] = cat.name;
+                        return acc;
+                    }, {});
+                    setCategoryMap(mapping);
+                }
+            } catch (err) {
+                console.error("Category Fetch Error:", err);
+            }
+        };
+
+        // 3. Fetch Operator Info
         const fetchOperator = async () => {
             const token = localStorage.getItem("token");
             if (!token) return setOperatorName("No Session Found");
@@ -51,6 +72,8 @@ export default function SummaryPage() {
                 }
             } catch (err) { setOperatorName("Offline Mode"); }
         };
+
+        fetchCategories();
         fetchOperator();
     }, []);
 
@@ -82,14 +105,14 @@ export default function SummaryPage() {
         const getTierClass = (min, max) => currentEff >= min && (max ? currentEff <= max : true) ? 'bg-blue-600/30 border-blue-500 animate-pulse' : 'border-white/5';
         
         Swal.fire({
-            title: '<span class="text-red-600 uppercase font-black italic tracking-widest">Time Credit Criteria (เกณฑ์สะสมเวลา)</span>',
+            title: '<span class="text-red-600 uppercase font-black tracking-widest">Time Credit Criteria</span>',
             html: `
-            <div class="text-left font-sans text-xl space-y-4 p-6 text-gray-300 italic border border-white/20 rounded-[2rem] bg-black/80 backdrop-blur-md shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+            <div class="text-left font-sans text-xl space-y-4 p-6 text-gray-300 border border-white/20 rounded-[2rem] bg-black/80 backdrop-blur-md shadow-[0_0_50px_rgba(255,255,255,0.1)]">
                 <table class="w-full border-separate border-spacing-y-2">
                     <thead>
                         <tr class="text-gray-500 uppercase text-xs tracking-widest">
-                            <th class="pb-4 text-left px-4">Accuracy (ความแม่นยำ)</th>
-                            <th class="pb-4 text-right px-4">Credit (เวลาสะสม)</th>
+                            <th class="pb-4 text-left px-4">Accuracy</th>
+                            <th class="pb-4 text-right px-4">Credit</th>
                         </tr>
                     </thead>
                     <tbody class="text-xl font-black">
@@ -102,7 +125,7 @@ export default function SummaryPage() {
                 </table>
             </div>
             `,
-            confirmButtonText: 'ACKNOWLEDGE (รับทราบ)',
+            confirmButtonText: 'ACKNOWLEDGE',
             confirmButtonColor: '#dc2626',
             background: '#0a0a0a',
             color: '#fff',
@@ -113,7 +136,7 @@ export default function SummaryPage() {
     if (!result) return <div className="h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-red-600 w-12 h-12" /></div>;
 
     return (
-        <div className="h-screen bg-[#050505] text-white p-6 md:p-10 font-sans relative flex flex-col overflow-hidden italic selection:bg-red-600/30">
+        <div className="h-screen bg-[#050505] text-white p-6 md:p-10 font-sans relative flex flex-col overflow-hidden selection:bg-red-600/30">
             {/* Background Glows */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-600/10 blur-[120px] rounded-full pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
@@ -123,9 +146,9 @@ export default function SummaryPage() {
                 <div className="space-y-2">
                     <div className="flex items-center gap-3 text-red-600 mb-2">
                         <div className="w-2 h-2 bg-red-600 rounded-full animate-ping" />
-                        <span className="text-xs font-black uppercase tracking-[0.3em]">System Verified (ยืนยันระบบเสร็จสิ้น)</span>
+                        <span className="text-xs font-black uppercase tracking-[0.3em]">System Verified</span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none italic bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">Analysis Report</h1>
+                    <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">Analysis Report</h1>
                     <div className="flex items-center gap-4 pt-2">
                         <div className="p-2 bg-white/5 rounded-full border border-white/10"><User size={20} className="text-red-500" /></div>
                         <p className="text-xl font-bold uppercase tracking-tight text-white/80">Operator: <span className="text-white">{operatorName}</span></p>
@@ -134,48 +157,52 @@ export default function SummaryPage() {
                 
                 <div className="flex gap-4">
                     <div className="bg-white/5 border border-white/10 p-4 rounded-3xl flex flex-col items-end min-w-[140px]">
-                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Duration (เวลาที่ใช้)</span>
+                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Duration</span>
                         <span className="text-3xl font-black text-white">{result.timeUsed}<small className="text-sm ml-1 text-gray-500">S</small></span>
                     </div>
-                    <button onClick={showCriteria} className="group bg-red-600 hover:bg-red-700 transition-all px-6 rounded-3xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-600/20 active:scale-95">
+                    <button onClick={showCriteria} className="group bg-red-600 hover:bg-red-700 transition-all px-6 rounded-3xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-red-600/20 active:scale-[0.98]">
                         <Trophy size={20} className="group-hover:rotate-12 transition-transform" />
-                        <span className="text-[9px] font-black uppercase tracking-tighter">Criteria (เกณฑ์)</span>
+                        <span className="text-[14px] font-black uppercase ">Criteria</span>
                     </button>
                 </div>
             </header>
 
             {/* --- GLOBAL STATS --- */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 shrink-0 relative z-10">
-                <StatCard label="Hits Rate (ความแม่นยำ)" value={`${result.efficiency}%`} sub="Overall Accuracy" color="text-blue-400" icon={<Target size={14}/>} />
-                <StatCard label="Total Hits (ตรวจพบ)" value={result.hits} sub="Threats Identified" color="text-green-500" icon={<CheckCircle2 size={14}/>} />
-                <StatCard label="False Alarms (ทักผิด)" value={result.fars} sub="Clean Flagged" color="text-red-500" icon={<AlertCircle size={14}/>} />
-                <StatCard label="Final Score (คะแนนรวม)" value={result.score} sub="Performance Points" color="text-white" icon={<BarChart3 size={14}/>} />
+                <StatCard label="Hits Rate" value={`${result.efficiency}%`} sub="Overall Accuracy" color="text-blue-400" icon={<Target size={14}/>} />
+                <StatCard label="Total Hits" value={result.hits} sub="Threats Identified" color="text-green-500" icon={<CheckCircle2 size={14}/>} />
+                <StatCard label="False Alarms" value={result.fars} sub="Clean Flagged" color="text-red-500" icon={<AlertCircle size={14}/>} />
+                <StatCard label="Final Score" value={result.score} sub="Performance Points" color="text-white" icon={<BarChart3 size={14}/>} />
             </div>
 
             {/* --- MAIN CONTENT --- */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden mb-28 relative z-10">
+                
                 {/* CATEGORY PERFORMANCE */}
                 <div className="xl:col-span-4 flex flex-col min-h-0 bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-sm">
                     <div className="flex items-center justify-between mb-6 shrink-0">
                         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
-                            <Layers size={16} className="text-red-600" /> Performance by Type (ผลงานแยกประเภท)
+                            <Layers size={16} className="text-red-600" /> Performance by Type
                         </h2>
                     </div>
                     <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {Object.entries(result.categoryStats || {}).map(([key, stats]) => {
                             const hitRate = stats.total > 0 ? (stats.hits / stats.total) * 100 : 0;
+                            // 🚀 Use the mapped Name instead of the ID
+                            const categoryDisplayName = categoryMap[key] || `Threat Class ${key}`;
+                            
                             return (
                                 <div key={key} className="bg-black/40 border border-white/5 p-5 rounded-[1.8rem] group hover:border-red-600/30 transition-all">
                                     <div className="flex justify-between items-center mb-3">
-                                        <span className="text-xs font-black uppercase text-gray-400 italic">Threat Class {key}</span>
+                                        <span className="text-xs font-black uppercase text-gray-400 ">{categoryDisplayName}</span>
                                         <span className="text-lg font-black text-white">{hitRate.toFixed(0)}%</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-3">
                                         <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-1000" style={{ width: `${hitRate}%` }} />
                                     </div>
                                     <div className="flex justify-between text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                        <span>Detected (พบ): <span className="text-green-500">{stats.hits}</span></span>
-                                        <span>Missed (หลุด): <span className="text-red-500">{stats.total - stats.hits}</span></span>
+                                        <span>Detected: <span className="text-green-500">{stats.hits}</span></span>
+                                        <span>Missed: <span className="text-red-500">{stats.total - stats.hits}</span></span>
                                     </div>
                                 </div>
                             );
@@ -186,7 +213,7 @@ export default function SummaryPage() {
                 {/* FORENSIC LOGS */}
                 <div className="xl:col-span-8 flex flex-col min-h-0 bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-6 backdrop-blur-sm">
                     <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2 mb-6 shrink-0">
-                        <ShieldAlert size={16} className="text-red-600" /> Forensic Logs (บันทึกข้อผิดพลาด)
+                        <ShieldAlert size={16} className="text-red-600" /> Forensic Logs
                         <span className="ml-auto bg-red-600 text-[10px] px-3 py-1 rounded-full text-white">{uniqueWrongAnswers.length} Entries</span>
                     </h2>
                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
@@ -201,11 +228,11 @@ export default function SummaryPage() {
                                 </div>
                                 <div className="flex items-center gap-8">
                                     <div className="text-center">
-                                        <span className="block text-[8px] text-gray-500 uppercase font-black mb-1">Expected (เป้าหมาย)</span>
+                                        <span className="block text-[8px] text-gray-500 uppercase font-black mb-1">Expected</span>
                                         <span className="text-green-500 font-black text-sm uppercase">{log.correct}</span>
                                     </div>
                                     <div className="text-center border-l border-white/10 pl-8">
-                                        <span className="block text-[8px] text-gray-500 uppercase font-black mb-1">Result (ตอบ)</span>
+                                        <span className="block text-[8px] text-gray-500 uppercase font-black mb-1">Result</span>
                                         <span className="text-red-500 font-black text-sm uppercase">{log.user}</span>
                                     </div>
                                     <div className="p-3 bg-white/5 rounded-full text-white/20 group-hover:text-white group-hover:bg-red-600 transition-all"><Search size={16} /></div>
@@ -227,7 +254,7 @@ export default function SummaryPage() {
                     onClick={terminateSession}
                     className="group relative w-full bg-white text-black py-6 rounded-full font-black text-xl hover:bg-red-600 hover:text-white transition-all uppercase shadow-[0_20px_40px_rgba(0,0,0,0.4)] active:scale-[0.98] overflow-hidden"
                 >
-                    <span className="relative z-10">Terminate Session (จบภารกิจและออกจากระบบ)</span>
+                    <span className="relative z-10">Terminate Session</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 </button>
             </div>
@@ -239,12 +266,12 @@ export default function SummaryPage() {
                         {isFetching ? (
                             <div className="p-40 flex flex-col items-center gap-4">
                                 <Loader2 className="animate-spin text-red-600 w-10 h-10" />
-                                <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600 animate-pulse">Retreiving Forensic Data...</p>
+                                <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600 animate-pulse">Retrieving Forensic Data...</p>
                             </div>
                         ) : (
                             <>
                                 <div className="bg-red-600 p-6 flex justify-between items-center shadow-lg">
-                                    <h3 className="font-black uppercase tracking-widest text-xl flex items-center gap-3 italic"><ShieldAlert /> Evidence Analysis (วิเคราะห์หลักฐาน)</h3>
+                                    <h3 className="font-black uppercase tracking-widest text-xl flex items-center gap-3 "><ShieldAlert /> Evidence Analysis</h3>
                                     <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-black/20 hover:bg-black/40 rounded-full flex items-center justify-center transition-all"><X size={20}/></button>
                                 </div>
                                 <div className="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -253,17 +280,17 @@ export default function SummaryPage() {
                                             <LightboxFrame label="X-Ray View A" src={`${API_URL}${selectedItem.top}`} />
                                             <LightboxFrame label="X-Ray View B" src={`${API_URL}${selectedItem.side}`} />
                                         </div>
-                                        <LightboxFrame label="Reference Image (วัตถุจริง)" src={`${API_URL}/${selectedItem.item?.realImage}`} isLarge />
+                                        <LightboxFrame label="Reference Image" src={`${API_URL}/${selectedItem.item?.realImage}`} isLarge />
                                     </div>
                                     <div className="lg:col-span-4 space-y-6">
                                         <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 space-y-4">
-                                            <LabelBox label="Correct Verdict (เป้าหมาย)" value={errorLog?.correct} color="text-green-500" />
-                                            <LabelBox label="Operator Result (คุณตอบ)" value={errorLog?.user} color="text-red-500" />
+                                            <LabelBox label="Correct Verdict" value={errorLog?.correct} color="text-green-500" />
+                                            <LabelBox label="Operator Result" value={errorLog?.user} color="text-red-500" />
                                         </div>
                                         <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5">
                                             <p className="text-[10px] text-gray-500 font-black uppercase mb-3 tracking-widest border-b border-white/10 pb-2">Analysis Report</p>
-                                            <p className="text-white font-black text-lg leading-tight uppercase mb-2 italic">{selectedItem?.item?.name}</p>
-                                            <p className="text-gray-400 text-xs leading-relaxed italic">{selectedItem?.item?.description}</p>
+                                            <p className="text-white font-black text-lg leading-tight uppercase mb-2 ">{selectedItem?.item?.name}</p>
+                                            <p className="text-gray-400 text-xs leading-relaxed ">{selectedItem?.item?.description}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -290,7 +317,7 @@ function StatCard({ label, value, sub, color, icon }) {
             <div className="absolute top-4 right-6 text-white/5 group-hover:text-white/10 transition-colors scale-150">{icon}</div>
             <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{label}</p>
             <p className={`text-5xl font-black ${color} tracking-tighter mb-1`}>{value}</p>
-            <p className="text-[10px] text-gray-700 font-bold uppercase italic">{sub}</p>
+            <p className="text-[10px] text-gray-700 font-bold uppercase ">{sub}</p>
         </div>
     );
 }
@@ -310,7 +337,7 @@ function LabelBox({ label, value, color }) {
     return (
         <div className="bg-black/40 p-5 rounded-3xl border border-white/5">
             <p className="text-[9px] text-gray-500 font-black uppercase mb-1 tracking-widest">{label}</p>
-            <p className={`text-2xl font-black uppercase italic ${color} leading-none`}>{value}</p>
+            <p className={`text-2xl font-black uppercase ${color} leading-none`}>{value}</p>
         </div>
     );
 }
