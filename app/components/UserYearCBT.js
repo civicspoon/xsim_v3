@@ -103,7 +103,7 @@ const UserYearCBT = () => {
   const getOverallGuide = () => {
     const rate = totals.avgHitsRate;
     if (rate > 80) return { status: "ELITE", color: "text-blue-400", bg: "bg-blue-600/10", tips: ["รักษามาตรฐานความแม่นยำ", "ศึกษาเคสระเบิดรูปแบบใหม่", "แนะนำเทคนิคให้ทีม"] };
-    if (rate > 70) return { status: "EXCELLENT", color: "text-green-400", bg: "bg-green-600/10", tips: ["เน้นการดูมุมมอง Side View", "ลดเวลาตัดสินใจ", "ทบทวนภาพวัตถุซ้อนทับ"] };
+    if (rate > 70) return { status: "EXCELLENT", color: "text-green-400", bg: "bg-green-600/10", tips: ["ใช้ Function ช่วยวิเคราะห์", "ลดเวลาตัดสินใจ", "ทบทวนภาพวัตถุซ้อนทับ"] };
     if (rate > 60) return { status: "GOOD", color: "text-yellow-400", bg: "bg-yellow-600/10", tips: ["ฝึกสแกนจุดอับสายตา", "ทบทวนสีของวัสดุ Organic", "เพิ่มความละเอียดในการสแกน"] };
     if (rate > 50) return { status: "IMPROVE", color: "text-orange-500", bg: "bg-orange-600/10", tips: ["ทำแบบทดสอบซ้ำหมวดที่พลาด", "ลดอัตรา False Alarm", "ทบทวนพื้นฐาน IED"] };
     return { status: "CRITICAL", color: "text-red-500", bg: "bg-red-600/10", tips: ["ระงับหน้าที่เพื่อฝึกอบรม", "เริ่มเรียนทฤษฎีใหม่", "ปรึกษา Supervisor ด่วน"] };

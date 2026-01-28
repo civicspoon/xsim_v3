@@ -6,7 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
     ChevronRight, ChevronLeft, Scan, LineChart,
     Users, BarChart3, Skull, Settings,
-    LogOut, GraduationCap, WrenchIcon, PlusSquare, ChevronDown, ShieldCheck
+    LogOut, GraduationCap, WrenchIcon, PlusSquare, ChevronDown, ShieldCheck,
+    LayoutDashboard // ✅ Changed from Dashboard to LayoutDashboard
 } from "lucide-react";
 
 const MENU_GROUPS = [
@@ -16,13 +17,15 @@ const MENU_GROUPS = [
         roles: [1, 2, 3],
         icon: Scan,
         items: [
+            // ✅ Updated icon reference here
+            { label: "Dashboard", path: "/pages/dashboard", roles: [1, 2, 3], icon: LayoutDashboard },
             { label: "X-Ray Simulator (CBT)", path: "/pages/selection", roles: [1, 2, 3], icon: Scan },
             { label: "Corrective (CBT)", path: "/pages/CorrectiveList", roles: [1, 2, 3], icon: ShieldCheck },
-
             { label: "My Training", path: "/pages/training", roles: [1, 2], icon: GraduationCap },
             { label: "Gallery", path: "/pages/gallery", roles: [1, 2, 3], icon: PlusSquare },
         ]
     },
+    // ... rest of your groups remains the same
     {
         groupLabel: "Management",
         id: "mgt",
@@ -38,7 +41,7 @@ const MENU_GROUPS = [
     {
         groupLabel: "Support",
         id: "support",
-        roles: [1, 2, 3],
+        roles: [1, 3],
         icon: WrenchIcon,
         items: [
             { label: "Corrective Action", path: "/profile", roles: [1, 2, 3], icon: WrenchIcon },
@@ -61,10 +64,8 @@ const Sidebar = ({ user, setUser }) => {
     const pathname = usePathname();
     const router = useRouter();
 
-    // ✅ เริ่มต้นที่ true เพื่อให้ย่อไว้อัตโนมัติ
     const [isCollapsed, setIsCollapsed] = useState(true);
 
-    // ควบคุมการเปิด-ปิดกลุ่มเมนู
     const [expandedGroups, setExpandedGroups] = useState({
         ops: true,
         mgt: false,
@@ -89,17 +90,13 @@ const Sidebar = ({ user, setUser }) => {
 
     return (
         <aside
-            // ✅ Hover Logic: ขยายเมื่อเมาส์เข้า หดเมื่อเมาส์ออก
             onMouseEnter={() => setIsCollapsed(false)}
             onMouseLeave={() => setIsCollapsed(true)}
-            className={`flex flex-col min-h-screen bg-slate-950 text-slate-50 border-r border-slate-800 transition-all duration-500 ease-in-out sticky top-0 h-screen z-50 shadow-2xl ${isCollapsed ? "w-20" : "w-80"
-                }`}
+            className={`flex flex-col min-h-screen bg-slate-950 text-slate-50 border-r border-slate-800 transition-all duration-500 ease-in-out sticky top-0 h-screen z-50 shadow-2xl ${isCollapsed ? "w-20" : "w-80"}`}
         >
-            {/* 🚀 Logo Section: แสดง "X" เมื่อย่อ และ "X-SIM" เมื่อขยาย */}
             <div className="flex items-center h-24 border-b border-slate-800 overflow-hidden px-4">
                 {isCollapsed ? (
                     <div className="w-full flex justify-center animate-in zoom-in duration-300">
-                        {/* โลโก้ตัว X สีแดงเด่นๆ */}
                         <span className="text-red-600 font-bold text-4xl" >X</span>
                     </div>
                 ) : (
@@ -115,7 +112,6 @@ const Sidebar = ({ user, setUser }) => {
                 )}
             </div>
 
-            {/* Navigation */}
             <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {MENU_GROUPS.filter(group => group.roles.includes(user.roleID)).map((group) => {
                     const isExpanded = expandedGroups[group.id];
@@ -123,11 +119,9 @@ const Sidebar = ({ user, setUser }) => {
 
                     return (
                         <div key={group.id} className="space-y-1">
-                            {/* Group Header */}
                             <button
                                 onClick={() => toggleGroup(group.id)}
-                                className={`flex items-center gap-4 w-full px-4 py-3 rounded-xl transition-all hover:bg-slate-800/50 ${isCollapsed ? "justify-center" : "justify-between"
-                                    }`}
+                                className={`flex items-center gap-4 w-full px-4 py-3 rounded-xl transition-all hover:bg-slate-800/50 ${isCollapsed ? "justify-center" : "justify-between"}`}
                             >
                                 <div className="flex items-center gap-4">
                                     <GroupIcon
@@ -148,9 +142,7 @@ const Sidebar = ({ user, setUser }) => {
                                 )}
                             </button>
 
-                            {/* Sub-Items (แสดงเฉพาะตอนขยาย Sidebar) */}
-                            <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                                }`}>
+                            <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
                                 <div className="pl-6 space-y-1 mt-1">
                                     {group.items.filter(item => item.roles.includes(user.roleID)).map((item) => {
                                         const isActive = pathname === item.path;
@@ -177,12 +169,10 @@ const Sidebar = ({ user, setUser }) => {
                 })}
             </nav>
 
-            {/* Logout Footer */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/50">
                 <button
                     onClick={handleLogout}
-                    className={`flex items-center gap-4 w-full px-4 py-4 rounded-xl text-slate-500 hover:bg-red-950/30 hover:text-red-500 transition-all ${isCollapsed ? "justify-center" : ""
-                        }`}
+                    className={`flex items-center gap-4 w-full px-4 py-4 rounded-xl text-slate-500 hover:bg-red-950/30 hover:text-red-500 transition-all ${isCollapsed ? "justify-center" : ""}`}
                 >
                     <LogOut size={22} className="shrink-0" />
                     {!isCollapsed && <span className="font-bold text-sm">Sign Out System</span>}

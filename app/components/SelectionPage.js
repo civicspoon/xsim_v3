@@ -64,7 +64,7 @@ export default function SelectionPage() {
         <div className="flex items-center justify-center gap-4 mb-6">
           <LayoutGrid className="text-red-600 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]" size={40} />
           <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic text-white">
-            XSIM V3 <span className="text-red-600">ARCHIVE</span>
+            XSIM V3 <span className="text-red-600">Simulator Training</span>
           </h1>
         </div>
         <p className="text-gray-400 text-2xl font-light italic">Select area to start simulation</p>

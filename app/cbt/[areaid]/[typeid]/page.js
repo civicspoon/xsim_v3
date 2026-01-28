@@ -385,17 +385,17 @@ export default function Page() {
     return (
         <div className="flex flex-col h-screen w-screen bg-[#050505] text-white tracking-tighter font-sans overflow-hidden">
             <div className="flex-1 flex overflow-hidden p-2">
-                <div className="flex-1 flex items-center justify-center relative bg-[#0a0a0a] rounded-[2rem] border border-white/5 shadow-2xl overflow-hidden">
+                <div className="flex-1 flex items-center justify-center relative bg-[#0a0a0a] rounded-4xl border border-white/5 shadow-2xl overflow-hidden">
                     <div className="flex w-full h-full p-1 gap-1">
                         <div className="flex-1" id="canvasLeft"></div>
                         <div className="flex-1" id="canvasRight"></div>
                     </div>
                 </div>
 
-                <div className="w-[200px] bg-[#111] m-2 rounded-[2.5rem] flex flex-col gap-6 border border-white/10 p-6 shadow-2xl">
+                <div className="w-50 bg-[#111] m-2 rounded-[2.5rem] flex flex-col gap-6 border border-white/10 p-6 shadow-2xl">
                     <h2 className="text-xs font-black text-red-600 uppercase tracking-widest text-center ">Threat Classification</h2>
                     <select
-                        className="w-full bg-black border-2 border-white/10 p-3 rounded-2xl text-sm font-black h-[400px] outline-none"
+                        className="w-full bg-black border-2 border-white/10 p-3 rounded-2xl text-sm font-black h-100 outline-none"
                         size="10"
                         value={selectedAnswer}
                         onChange={(e) => setSelectedAnswer(e.target.value)}
@@ -422,7 +422,7 @@ export default function Page() {
                     <p className="text-5xl font-black text-yellow-500 font-mono tracking-tighter">{formatTime(timeLeft)}</p>
                 </div>
                 <div className="h-12 w-[2px] bg-white/10"></div>
-                <div className="text-center min-w-[200px]">
+                <div className="text-center min-w-50">
                     <span className="text-[10px] text-red-600 uppercase font-black tracking-widest ">Operator Identity</span>
                     <p className="text-lg font-black uppercase text-white/90 truncate w-full">{operatorName}</p>
                 </div>
