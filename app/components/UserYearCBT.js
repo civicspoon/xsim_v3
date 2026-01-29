@@ -125,7 +125,7 @@ const UserYearCBT = () => {
       <div className="xl:col-span-8 space-y-6">
         
         {/* Profile Card */}
-        <div className="bg-gradient-to-r from-red-900/20 to-transparent border border-white/10 p-6 rounded-[2.5rem] backdrop-blur-md flex items-center gap-6">
+        <div className="bg-linear-to-r from-red-900/20 to-transparent border border-white/10 p-6 rounded-[2.5rem] backdrop-blur-md flex items-center gap-6">
           <div className="relative">
             <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(220,38,38,0.4)]">
               <User size={32} className="text-white" />
@@ -149,7 +149,7 @@ const UserYearCBT = () => {
         </div>
 
         {/* Capability Profile Map */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8">
+        <div className="bg-white/2 border border-white/5 rounded-[2.5rem] p-8">
           <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
             <h3 className="text-lg font-black uppercase  text-white/60 flex items-center gap-2">
               <Activity size={14} className="text-red-600" /> แผนผังประเมินสมรรถนะรายหมวดหมู่
@@ -171,7 +171,7 @@ const UserYearCBT = () => {
                       <span className={`text-2xl font-black ${theme.color}`}>{item.accuracy.toFixed(1)}%</span>
                     </div>
                   </div>
-                  <div className="relative h-2.5 w-full bg-white/5 rounded-full border border-white/10 p-[1px] overflow-hidden">
+                  <div className="relative h-2.5 w-full bg-white/5 rounded-full border border-white/10 p-px overflow-hidden">
                     <div 
                       className={`h-full rounded-full transition-all duration-1000 ${theme.bar} ${item.accuracy > 80 ? 'shadow-[0_0_15px_rgba(37,99,235,0.4)]' : ''}`}
                       style={{ width: `${item.accuracy}%` }}
@@ -227,13 +227,17 @@ const UserYearCBT = () => {
 };
 
 // --- HELPER UI COMPONENTS ---
+// --- HELPER UI COMPONENTS ---
 const StatBox = ({ label, value, unit, icon, color }) => (
-  <div className="group bg-white/[0.03] border border-white/10 p-6 rounded-[2rem] flex items-center justify-between overflow-hidden relative transition-all hover:bg-white/[0.05]">
+  <div className="group bg-white/3 border border-white/10 p-6 rounded-4xl flex items-center justify-between overflow-hidden relative transition-all hover:bg-white/5">
     <div className="relative z-10">
-      <p className="text-[14px] text-gray-500 uppercase font-black  mb-1">{label}</p>
-      <p className={`text-5xl font-black ${color} er`}>{value}<small className="text-sm ml-1 text-gray-500 font-bold uppercase">{unit}</small></p>
+      <p className="text-[14px] text-gray-500 uppercase font-black mb-1">{label}</p>
+      <p className={`text-5xl font-black ${color}`}>
+        {value}
+        <small className="text-sm ml-1 text-gray-500 font-bold uppercase">{unit}</small>
+      </p>
     </div>
-    <div className="text-white/[0.02] absolute right-[-14px] bottom-[-14px] transition-all group-hover:scale-110 group-hover:text-white/[0.05]">
+    <div className="text-white/2 absolute -right-3.5 -bottom-3.5 transition-all group-hover:scale-110 group-hover:text-white/5">
       {React.cloneElement(icon, { size: 100 })}
     </div>
   </div>

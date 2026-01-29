@@ -76,9 +76,9 @@ export default function SelectionPage() {
           <div
             key={item.id}
             onClick={() => setSelectedArea(item)}
-            className="group relative bg-gray-900/40 border border-gray-800 p-8 rounded-[2rem] cursor-pointer overflow-hidden transition-all duration-500 hover:scale-105 hover:border-red-600/50"
+            className="group relative bg-gray-900/40 border border-gray-800 p-8 rounded-4xl cursor-pointer overflow-hidden transition-all duration-500 hover:scale-105 hover:border-red-600/50"
           >
-            <div className={`mb-6 p-4 inline-block rounded-2xl bg-gradient-to-br ${item.color} text-white`}>
+            <div className={`mb-6 p-4 inline-block rounded-2xl bg-linear-to-br ${item.color} text-white`}>
               {item.icon}
             </div>
             <h3 className="text-3xl font-bold text-white mb-1 group-hover:text-red-500 transition-colors">{item.title}</h3>
@@ -88,14 +88,14 @@ export default function SelectionPage() {
             <div className="flex items-center text-white font-bold text-sm tracking-widest">
               SELECT SESSION <ChevronRight className="ml-2 w-5 h-5 text-red-600" />
             </div>
-            <div className={`absolute bottom-0 left-0 h-1.5 w-0 bg-gradient-to-r ${item.color} group-hover:w-full transition-all duration-500`}></div>
+            <div className={`absolute bottom-0 left-0 h-1.5 w-0 bg-linear-to-r ${item.color} group-hover:w-full transition-all duration-500`}></div>
           </div>
         ))}
       </div>
 
       {/* 🛠️ Category Selection Modal (Glassmorphism) */}
       {selectedArea && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-2xl bg-black/80 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 backdrop-blur-2xl bg-black/80 animate-in fade-in duration-300">
           <div className="bg-[#111] border border-white/10 p-10 rounded-[3rem] w-full max-w-lg shadow-2xl relative">
             <button 
               onClick={() => { setSelectedArea(null); setSelectedCatId(""); }}
@@ -105,7 +105,7 @@ export default function SelectionPage() {
             </button>
 
             <div className="mb-8">
-              <span className={`text-[16px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full bg-gradient-to-r ${selectedArea.color} text-balck`}>
+              <span className={`text-[16px] font-black uppercase tracking-[0.3em] px-3 py-1 rounded-full bg-linear-to-r ${selectedArea.color} text-balck`}>
                 Target Sector: {selectedArea.title}
               </span>
               <h2 className="text-4xl font-black text-white mt-4 uppercase">Select <span className="text-red-600">Category</span></h2>

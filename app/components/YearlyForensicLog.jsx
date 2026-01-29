@@ -157,8 +157,8 @@ const YearlyForensicLog = () => {
                             {logs.map((log, idx) => {
                                 const status = getDailyStatus(log.avgRate);
                                 return (
-                                    <tr key={idx} className="group bg-white/[0.03] hover:bg-white/[0.07] transition-all relative overflow-auto rounded-[2rem]">
-                                        <td className="py-5 pl-8 rounded-l-[2rem] border-l border-white/5">
+                                    <tr key={idx} className="group bg-white/3 hover:bg-white/[0.07] transition-all relative overflow-auto rounded-4xl">
+                                        <td className="py-5 pl-8 rounded-l-4xl border-l border-white/5">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-black text-white group-hover:text-red-500 transition-colors">
                                                     {new Date(log.date).toLocaleDateString('en-GB', {
@@ -186,7 +186,7 @@ const YearlyForensicLog = () => {
                                                 <span className="text-sm font-black text-green-500">{log.totalTime} นาที</span>
                                             </div>
                                         </td>
-                                        <td className="pr-8 text-right rounded-r-[2rem] border-r border-white/5">
+                                        <td className="pr-8 text-right rounded-r-4xl border-r border-white/5">
                                             <button className="p-2.5 bg-white/5 hover:bg-red-600 rounded-xl transition-all shadow-lg active:scale-95">
                                                 <Search size={14} className="text-gray-200 group-hover:text-white" />
                                             </button>

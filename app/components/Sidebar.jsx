@@ -36,6 +36,7 @@ const MENU_GROUPS = [
             { label: "Class Management", path: "/instructor/classes", roles: [1, 3], icon: Users },
             { label: "Session Reports", path: "/instructor/reports", roles: [1, 3], icon: BarChart3 },
             { label: "Threat Library", path: "/instructor/library", roles: [1, 3], icon: Skull },
+            { label: "Corrective", path: "/pages/correctiveform", roles: [1, 3], icon: WrenchIcon}
         ]
     },
     {
