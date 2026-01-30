@@ -30,7 +30,7 @@ export default function PagesLayout({ children }) {
         <div
             className="flex h-screen bg-cover bg-center overflow-hidden"
             style={{
-                backgroundImage: "url('/images/pageBG.png')",
+                backgroundImage: "url('../images/pageBG.png')",
             }}
         >      <Sidebar user={user} setUser={setUser} />
             <main className="flex-1 p-1 overflow-hidden">

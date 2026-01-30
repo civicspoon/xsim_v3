@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ClipboardCheck, Clock, AlertCircle, Trash2, 
+import {
+  ClipboardCheck, Clock, AlertCircle, Trash2,
   Loader2, Calendar, MessageSquare, CheckCircle2,
-  Activity, ShieldAlert, Target, TrendingUp
+  Activity, ShieldAlert, Target, TrendingUp,
+  SearchCheck
 } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3015";
@@ -45,11 +46,21 @@ const CorrectiveLogs = () => {
     }
   };
 
+  const gotoCorrective = (areaid, typeid) => {
+    if (typeid == 77) {
+      // แก้ไข: ลบปีกกาส่วนเกินตรงท้าย URL
+      window.location.href = `/pages/corrective/${areaid}/all`;
+    } else {
+      window.location.href = `/pages/corrective/${areaid}/${typeid}`;
+    }
+  }; // ปิดฟังก์ชัน gotoCorrective ให้ถูกต้อง
+
+  // ส่วน return ต้องอยู่ภายในฟังก์ชัน CorrectiveLogs
   return (
-        <div className="min-h-screen bg-[#050505]/95 text-white p-6 md:p-10 font-sans relative overflow-auto">
-      
-      {/* --- HEADER PANEL (YearlyForensicLog Style) --- */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/1 border border-white/5 p-8 rounded-[2.5rem] backdrop-blur-3xl shadow-2xl">
+    <div className="min-h-screen bg-[#050505]/95 text-white p-6 md:p-10 font-sans relative overflow-auto">
+
+      {/* --- HEADER PANEL --- */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/5 border border-white/5 p-8 rounded-[2.5rem] backdrop-blur-3xl shadow-2xl mb-10">
         <div className="flex items-center gap-5">
           <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(220,38,38,0.4)] border border-red-500/50">
             <ClipboardCheck size={28} className="text-white" />
@@ -72,7 +83,7 @@ const CorrectiveLogs = () => {
       </div>
 
       {/* --- TABLE CONTAINER --- */}
-      <div className="bg-white/1 border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-md shadow-2xl">
+      <div className="bg-white/5 border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-md shadow-2xl mb-10">
         {loading ? (
           <div className="py-32 flex flex-col items-center justify-center gap-6">
             <div className="relative">
@@ -85,26 +96,25 @@ const CorrectiveLogs = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 bg-white/2">
-                  <th className="p-6 pl-10 text-lg font-black text-gray-500 uppercase tracking-[0.2em]">Timestamp / ID</th>
-                  <th className="p-6 text-lg font-black text-gray-500 uppercase tracking-[0.2em]">Classification</th>
-                  <th className="p-6 text-lg font-black text-gray-500 uppercase tracking-[0.2em] text-center">Goal (Min)</th>
-                  <th className="p-6 text-lg font-black text-gray-500 uppercase tracking-[0.2em] text-center">Actual (Min)</th>
-                  <th className="p-6 text-lg font-black text-gray-500 uppercase tracking-[0.2em]">Remarks</th>
-                  {userRole === 1 && <th className="p-6 pr-10 text-lg font-black text-gray-500 uppercase tracking-[0.2em] text-right">Admin Action</th>}
+                <tr className="border-b border-white/5 bg-white/5">
+                  <th className="p-6 pl-10 text-sm font-black text-gray-500 uppercase tracking-[0.2em]">Timestamp / ID</th>
+                  <th className="p-6 text-sm font-black text-gray-500 uppercase tracking-[0.2em]">Classification</th>
+                  <th className="p-6 text-sm font-black text-gray-500 uppercase tracking-[0.2em] text-center">Goal (Min)</th>
+                  <th className="p-6 text-sm font-black text-gray-500 uppercase tracking-[0.2em] text-center">Actual (Min)</th>
+                  <th className="p-6 text-sm font-black text-gray-500 uppercase tracking-[0.2em]">Remarks</th>
+                  {userRole === 1 && <th className="p-6 pr-10 text-sm font-black text-gray-500 uppercase tracking-[0.2em] text-right">Admin Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {logs.map((log) => {
                   const isPassing = log.timeGet !== null && log.timeGet >= log.timeTarget;
                   return (
-                    <tr 
-                      key={log.id} 
-                      className={`group transition-all duration-300 ${
-                        isPassing 
-                          ? 'bg-green-500/5 hover:bg-green-500/10' 
-                          : 'hover:bg-white/2'
-                      }`}
+                    <tr
+                      key={log.id}
+                      className={`group transition-all duration-300 ${isPassing
+                        ? 'bg-green-500/5 hover:bg-green-500/10'
+                        : 'hover:bg-white/5'
+                        }`}
                     >
                       <td className="p-6 pl-10">
                         <div className="flex items-center gap-3">
@@ -113,57 +123,56 @@ const CorrectiveLogs = () => {
                             <p className="text-sm font-bold text-white group-hover:text-red-500 transition-colors">
                               {new Date(log.createdAt).toLocaleDateString('th-TH')}
                             </p>
-                            <p className="text-lg font-mono text-gray-600 uppercase tracking-tighter mt-0.5">#LOG-{log.id}</p>
+                            <p className="text-xs font-mono text-gray-600 uppercase tracking-tighter mt-0.5">#LOG-{log.id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="p-6">
-                        <span className={`text-lg font-black px-3 py-1 rounded-md border uppercase tracking-tighter ${
-                          isPassing 
-                            ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                            : 'bg-red-600/10 text-red-500 border-red-600/20'
-                        }`}>
-                          {log.type?.name}
+                        <span className={`text-xs font-black px-3 py-1 rounded-md border uppercase tracking-tighter ${isPassing
+                          ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                          : 'bg-red-600/10 text-red-500 border-red-600/20'
+                          }`}>
+                          {log.type?.name || "N/A"}
                         </span>
                       </td>
                       <td className="p-6 text-center">
-                        <span className="text-lg font-mono font-black text-gray-500">{log.timeTarget}</span>
+                        <span className="text-sm font-mono font-black text-gray-500">{log.timeTarget}</span>
                       </td>
                       <td className="p-6 text-center">
                         {log.timeGet !== null ? (
                           <div className="flex flex-col items-center">
                             <div className="flex items-center gap-2">
-                              <span className={`text-lg font-mono font-black ${isPassing ? 'text-green-400' : 'text-red-500'}`}>
+                              <span className={`text-sm font-mono font-black ${isPassing ? 'text-green-400' : 'text-red-500'}`}>
                                 {log.timeGet}
                               </span>
-                              {isPassing && <CheckCircle2 size={14} className="text-green-400" />}
+                              {isPassing && <CheckCircle2 size={12} className="text-green-400" />}
                             </div>
-                            <div className="w-12 h-1 bg-white/5 rounded-full mt-1 overflow-hidden">
-                              <div 
-                                className={`h-full ${isPassing ? 'bg-green-500' : 'bg-red-600'}`} 
-                                style={{ width: `${Math.min((log.timeGet/log.timeTarget)*100, 100)}%` }}
+                            <div className="w-12 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                              <div
+                                className={`h-full ${isPassing ? 'bg-green-500' : 'bg-red-600'}`}
+                                style={{ width: `${Math.min((log.timeGet / log.timeTarget) * 100, 100)}%` }}
                               ></div>
                             </div>
                           </div>
                         ) : (
-                          <span className="text-lg font-black text-gray-700 uppercase italic">Pending Results</span>
+                          <span className="text-xs font-black text-gray-700 uppercase italic">Pending Results</span>
                         )}
                       </td>
                       <td className="p-6">
                         <div className="flex items-start gap-2 max-w-50">
-                          <MessageSquare size={14} className="text-gray-600 shrink-0 mt-0.5" />
-                          <p className="text-xs text-gray-500 italic truncate group-hover:whitespace-normal transition-all">
+                          <MessageSquare size={12} className="text-gray-600 shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-gray-500 italic truncate group-hover:whitespace-normal transition-all leading-tight">
                             {log.remark || "NO REMARKS"}
                           </p>
                         </div>
                       </td>
                       {userRole === 1 && (
                         <td className="p-6 pr-10 text-right">
-                          <button 
-                            onClick={() => handleDelete(log.id)}
-                            className="p-3 bg-white/5 hover:bg-red-600 text-gray-500 hover:text-white rounded-xl transition-all duration-300 shadow-lg active:scale-95 group/btn"
+                          <button
+                            onClick={() => gotoCorrective(log.areaId, log.itemCategoryId)}
+                            className="p-2.5 bg-white/5 hover:bg-red-600 text-gray-200 hover:text-white rounded-xl transition-all duration-300 shadow-lg active:scale-95"
                           >
-                            <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                            <SearchCheck size={20} />
                           </button>
                         </td>
                       )}
@@ -182,16 +191,16 @@ const CorrectiveLogs = () => {
       </div>
 
       {/* --- LEGEND FOOTER --- */}
-      <div className="flex items-center gap-6 px-8 text-lg font-black uppercase tracking-widest text-gray-600">
+      <div className="flex flex-wrap items-center gap-6 px-8 text-[10px] font-black uppercase tracking-widest text-gray-600 pb-10">
         <div className="flex items-center gap-2">
           <TrendingUp size={14} className="text-red-600" />
           <span>Operational Legend:</span>
         </div>
-        <div className="flex items-center gap-2 bg-white/2 px-3 py-1 rounded-md border border-white/5">
+        <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-md border border-white/5">
           <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           <span>Requirement Met</span>
         </div>
-        <div className="flex items-center gap-2 bg-white/2 px-3 py-1 rounded-md border border-white/5">
+        <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-md border border-white/5">
           <div className="w-2 h-2 rounded-full bg-red-600" />
           <span>Correction Required</span>
         </div>

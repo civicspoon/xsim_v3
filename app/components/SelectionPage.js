@@ -10,8 +10,7 @@ export default function SelectionPage() {
   const [selectedArea, setSelectedArea] = useState(null); // เก็บพื้นที่ที่เลือก
   const [selectedCatId, setSelectedCatId] = useState(""); // เก็บหมวดหมู่ที่เลือก
   const [allCategories, setAllCategories] = useState([]); // ข้อมูลหมวดหมู่จาก API
-  const API_URL = "http://localhost:3015";
-
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
   // ดึงข้อมูล Category มาเตรียมไว้
   useEffect(() => {
     fetch(`${API_URL}/itemCategory`)

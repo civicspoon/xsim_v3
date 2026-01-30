@@ -177,6 +177,7 @@ export default function Page() {
     const afkTimerRef = useRef(null);
 
     // Initial Load
+    // --------------------------- ปรับปรุงในส่วน Initial Load ---------------------------
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
@@ -190,13 +191,31 @@ export default function Page() {
                 ]);
 
                 if (!catRes.ok || !imgRes.ok) throw new Error("Metadata fetch failed");
-                const categories = await catRes.json();
+
+                let categories = await catRes.json();
                 const imgData = await imgRes.json();
 
+                // 🔥 DYNAMIC EXCLUDE LOGIC
+                // กรองรายการออกตามเงื่อนไข areaId
+                if (area == 2) {
+                    // ตัดรายการที่มี ID เป็น 4 (หรือ index 4 ตามที่คุณต้องการ - แนะนำให้ใช้ ID เพื่อความแม่นยำ)
+                    categories = categories.filter(cat => cat.id !== 5);
+                } else if (area ==3) {
+                    // ตัดรายการที่มี ID เป็น 4 และ 5
+                    categories = categories.filter(cat => cat.id !== 5 && cat.id !== 6);
+                }
+
                 setCategory(categories);
-                if (categories.length > 0) setSelectedAnswer(categories[0].id.toString());
+
+                // ตั้งค่าเริ่มต้นให้เป็นรายการแรกที่เหลืออยู่
+                if (categories.length > 0) {
+                    setSelectedAnswer(categories[0].id.toString());
+                }
+
                 setImageList(Array.isArray(imgData) ? imgData : [imgData]);
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error(err);
+            }
         };
         fetchMetadata();
     }, [area, typeid]);
@@ -328,57 +347,57 @@ export default function Page() {
         nextImage(true);
     };
 
-   const finishGame = async (autoSubmit = false) => {
-    const currentEfficiency = parseFloat(((hits / (hits + fars + 0.0001)) * 100).toFixed(1));
-    
-    // 🚀 FIX: Logic to return time credit based on accuracy criteria
-    let calculatedTimeUse = 0;
-    if (currentEfficiency >= 81) {
-        calculatedTimeUse = 20;
-    } else if (currentEfficiency >= 71) {
-        calculatedTimeUse = 16;
-    } else if (currentEfficiency >= 61) {
-        calculatedTimeUse = 14;
-    } else if (currentEfficiency >= 50) {
-        calculatedTimeUse = 12;
-    } else {
-        calculatedTimeUse = 0;
-    }
+    const finishGame = async (autoSubmit = false) => {
+        const currentEfficiency = parseFloat(((hits / (hits + fars + 0.0001)) * 100).toFixed(1));
 
-    const summary = {
-        userId: user?.userID || user?.id,
-        score, 
-        hits, 
-        fars,
-        efficiency: currentEfficiency,
-        categoryStats, 
-        wrongAnswers,
-        userName: operatorName,
-        timeUsed: calculatedTimeUse // ✅ Now returns the correct credit
+        // 🚀 FIX: Logic to return time credit based on accuracy criteria
+        let calculatedTimeUse = 0;
+        if (currentEfficiency >= 81) {
+            calculatedTimeUse = 20;
+        } else if (currentEfficiency >= 71) {
+            calculatedTimeUse = 16;
+        } else if (currentEfficiency >= 61) {
+            calculatedTimeUse = 14;
+        } else if (currentEfficiency >= 50) {
+            calculatedTimeUse = 12;
+        } else {
+            calculatedTimeUse = 0;
+        }
+
+        const summary = {
+            userId: user?.userID || user?.id,
+            score,
+            hits,
+            fars,
+            efficiency: currentEfficiency,
+            categoryStats,
+            wrongAnswers,
+            userName: operatorName,
+            timeUsed: calculatedTimeUse // ✅ Now returns the correct credit
+        };
+
+        setIsFinished(true);
+        try {
+            localStorage.setItem("session_result", JSON.stringify(summary));
+            const token = localStorage.getItem("token");
+            await fetch(`${API_URL}/training/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    ...summary,
+                    categoryStats: JSON.stringify(categoryStats),
+                    wrongAnswers: JSON.stringify(wrongAnswers)
+                })
+            });
+        } catch (err) {
+            console.error("Submit error:", err);
+        }
+
+        router.push(`/cbt/${area}/${typeid}/summary`);
     };
-
-    setIsFinished(true);
-    try {
-        localStorage.setItem("session_result", JSON.stringify(summary));
-        const token = localStorage.getItem("token");
-        await fetch(`${API_URL}/training/save`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify({
-                ...summary,
-                categoryStats: JSON.stringify(categoryStats),
-                wrongAnswers: JSON.stringify(wrongAnswers)
-            })
-        });
-    } catch (err) { 
-        console.error("Submit error:", err); 
-    }
-
-    router.push(`/cbt/${area}/${typeid}/summary`);
-};
 
     const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
@@ -416,17 +435,17 @@ export default function Page() {
                 </div>
             </div>
 
-            <div className="h-[120px] bg-[#0d0d0d] flex items-center justify-around border-t border-white/10 px-12">
+            <div className="h-30 bg-[#0d0d0d] flex items-center justify-around border-t border-white/10 px-12">
                 <div className="text-center">
                     <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Time Remaining</span>
                     <p className="text-5xl font-black text-yellow-500 font-mono tracking-tighter">{formatTime(timeLeft)}</p>
                 </div>
-                <div className="h-12 w-[2px] bg-white/10"></div>
+                <div className="h-12 w-0.5 bg-white/10"></div>
                 <div className="text-center min-w-50">
                     <span className="text-[10px] text-red-600 uppercase font-black tracking-widest ">Operator Identity</span>
                     <p className="text-lg font-black uppercase text-white/90 truncate w-full">{operatorName}</p>
                 </div>
-                <div className="h-12 w-[2px] bg-white/10"></div>
+                <div className="h-12 w-0.5 bg-white/10"></div>
                 <div className="flex gap-12 text-center">
                     <div>
                         <span className="text-[10px] text-gray-400 uppercase font-black">Score</span>
@@ -437,7 +456,7 @@ export default function Page() {
                         <p className="text-4xl font-black text-blue-400">{((hits / (hits + fars + 0.0001)) * 100).toFixed(0)}%</p>
                     </div>
                 </div>
-                <button onClick={() => finishGame()} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase tracking-widest transition-all">Abort Mission</button>
+                <button onClick={() => router.push("/dashboard")} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase tracking-widest transition-all">Abort Mission</button>
             </div>
         </div>
     );

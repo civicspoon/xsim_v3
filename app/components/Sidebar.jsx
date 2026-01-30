@@ -7,7 +7,7 @@ import {
     ChevronRight, ChevronLeft, Scan, LineChart,
     Users, BarChart3, Skull, Settings,
     LogOut, GraduationCap, WrenchIcon, PlusSquare, ChevronDown, ShieldCheck,
-    LayoutDashboard // ✅ Changed from Dashboard to LayoutDashboard
+    LayoutDashboard, BookOpen // ✅ Added BookOpen for Manual
 } from "lucide-react";
 
 const MENU_GROUPS = [
@@ -17,15 +17,15 @@ const MENU_GROUPS = [
         roles: [1, 2, 3],
         icon: Scan,
         items: [
-            // ✅ Updated icon reference here
             { label: "Dashboard", path: "/pages/dashboard", roles: [1, 2, 3], icon: LayoutDashboard },
             { label: "X-Ray Simulator (CBT)", path: "/pages/selection", roles: [1, 2, 3], icon: Scan },
             { label: "Corrective (CBT)", path: "/pages/CorrectiveList", roles: [1, 2, 3], icon: ShieldCheck },
             { label: "My Training", path: "/pages/training", roles: [1, 2], icon: GraduationCap },
             { label: "Gallery", path: "/pages/gallery", roles: [1, 2, 3], icon: PlusSquare },
+            // ✅ Added User Manual here
+            { label: "User Manual", path: "/pages/manual", roles: [1, 2, 3], icon: BookOpen }, 
         ]
     },
-    // ... rest of your groups remains the same
     {
         groupLabel: "Management",
         id: "mgt",
@@ -95,6 +95,7 @@ const Sidebar = ({ user, setUser }) => {
             onMouseLeave={() => setIsCollapsed(true)}
             className={`flex flex-col min-h-screen bg-slate-950 text-slate-50 border-r border-slate-800 transition-all duration-500 ease-in-out sticky top-0 h-screen z-50 shadow-2xl ${isCollapsed ? "w-20" : "w-80"}`}
         >
+            {/* Header / Logo Section */}
             <div className="flex items-center h-24 border-b border-slate-800 overflow-hidden px-4">
                 {isCollapsed ? (
                     <div className="w-full flex justify-center animate-in zoom-in duration-300">
@@ -113,6 +114,7 @@ const Sidebar = ({ user, setUser }) => {
                 )}
             </div>
 
+            {/* Navigation Section */}
             <nav className="flex-1 p-4 space-y-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 {MENU_GROUPS.filter(group => group.roles.includes(user.roleID)).map((group) => {
                     const isExpanded = expandedGroups[group.id];
@@ -143,7 +145,7 @@ const Sidebar = ({ user, setUser }) => {
                                 )}
                             </button>
 
-                            <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ${isExpanded && !isCollapsed ? "max-h-125 opacity-100" : "max-h-0 opacity-0"}`}>
                                 <div className="pl-6 space-y-1 mt-1">
                                     {group.items.filter(item => item.roles.includes(user.roleID)).map((item) => {
                                         const isActive = pathname === item.path;
@@ -170,6 +172,7 @@ const Sidebar = ({ user, setUser }) => {
                 })}
             </nav>
 
+            {/* Logout Section */}
             <div className="p-4 border-t border-slate-800 bg-slate-950/50">
                 <button
                     onClick={handleLogout}
