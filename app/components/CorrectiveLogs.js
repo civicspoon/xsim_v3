@@ -46,12 +46,12 @@ const CorrectiveLogs = () => {
     }
   };
 
-  const gotoCorrective = (areaid, typeid) => {
+  const gotoCorrective = (areaid, typeid,corid) => {
     if (typeid == 77) {
       // แก้ไข: ลบปีกกาส่วนเกินตรงท้าย URL
-      window.location.href = `/pages/corrective/${areaid}/all`;
+      window.location.href = `/pages/corrective/${areaid}/all/${corid}`;
     } else {
-      window.location.href = `/pages/corrective/${areaid}/${typeid}`;
+      window.location.href = `/pages/corrective/${areaid}/${typeid}/${corid}`;
     }
   }; // ปิดฟังก์ชัน gotoCorrective ให้ถูกต้อง
 
@@ -169,7 +169,7 @@ const CorrectiveLogs = () => {
                       {userRole === 1 && (
                         <td className="p-6 pr-10 text-right">
                           <button
-                            onClick={() => gotoCorrective(log.areaId, log.itemCategoryId)}
+                            onClick={() => gotoCorrective(log.areaId, log.itemCategoryId, log.id)}
                             className="p-2.5 bg-white/5 hover:bg-red-600 text-gray-200 hover:text-white rounded-xl transition-all duration-300 shadow-lg active:scale-95"
                           >
                             <SearchCheck size={20} />

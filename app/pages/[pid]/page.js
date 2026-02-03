@@ -10,6 +10,7 @@ import CorrectiveList from "@/app/components/CorrectiveLogs";
 import YearlyForensicLog from "@/app/components/YearlyForensicLog";
 import CorrectiveForm from "@/app/components/CorrectiveForm";
 import ManualPage from "@/app/components/ManualPage";
+import DirectBaggageEditor from "@/app/components/DirectBaggageEditor";
 
 
 export default function DynamicPage() {
@@ -40,6 +41,9 @@ export default function DynamicPage() {
           return <CorrectiveForm />;
         case 'manual':
           return <ManualPage />;
+
+          case'DirectBaggageEditor':
+          return <DirectBaggageEditor />;
       default:
         return (
           <div className="p-1 text-center text-slate-500  overflow-hidden">

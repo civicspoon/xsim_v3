@@ -1,33 +1,32 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getOperatorProfile, clearGameSession } from "@/app/lib/auth";
+import { getOperatorProfile } from "@/app/lib/auth";
 import Swal from "sweetalert2";
 
 const ICON_CHAR = "🔍";
 const canvasSize = { width: 850, height: 980 };
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const courseTime = 1; // minutes
-const speed = 2;
+const speed = 2.5;
 
 // --------------------------- Canvas Class ---------------------------
 class _Canvas {
-    constructor(domId, imageX, imageY, onAnimationEnd) {
+    constructor(domId, onAnimationEnd) {
         this.domId = domId;
         this.canvas = document.createElement("canvas");
         this.ctx = this.canvas.getContext("2d");
         this.originalImage = null;
         this.iconPosition = null;
-        this.imageX = imageX || -820;
-        this.imageY = imageY || 0;
+        this.imageX = 0;
+        this.imageY = 0;
         this.onAnimationEnd = onAnimationEnd;
         this.scale = 1;
         this.isPaused = false;
         this.animating = false;
+        this.animationFrameId = null;
         this.lastDraw = { x: 0, y: 0, w: 0, h: 0 };
         this.debugOffsetY = 0;
-
-        // --- Added for Zoom & Drag ---
         this.offsetX = 0;
         this.offsetY = 0;
         this.isDragging = false;
@@ -37,7 +36,6 @@ class _Canvas {
         this.initInteraction();
     }
 
-    // --- Added Mouse Interaction ---
     initInteraction() {
         this.canvas.addEventListener("wheel", (e) => {
             e.preventDefault();
@@ -60,9 +58,7 @@ class _Canvas {
             this.redraw();
         });
 
-        window.addEventListener("mouseup", () => {
-            this.isDragging = false;
-        });
+        window.addEventListener("mouseup", () => { this.isDragging = false; });
     }
 
     start(w, h) {
@@ -71,78 +67,90 @@ class _Canvas {
         this.canvas.style.borderRadius = "24px";
         const domTarget = document.getElementById(this.domId);
         if (domTarget) { domTarget.innerHTML = ""; domTarget.appendChild(this.canvas); }
-        this.clearScreen();
     }
 
-    clearScreen() { this.ctx.fillStyle = "white"; this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); }
+    clearScreen() { 
+        this.ctx.fillStyle = "white"; 
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height); 
+    }
 
     async drawImageFromURL(url) {
-        try {
-            const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
-            await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-            this.originalImage = img;
-            this.imageX = -img.width;
-            this.imageY = (this.canvas.height - (img.height * this.scale)) / 2;
-            this.redraw();
-        } catch (err) { console.error("Load Error:", err); }
+        this.stopAnimation();
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                this.originalImage = img;
+                this.imageX = -img.width;
+                this.imageY = (this.canvas.height - img.height) / 2;
+                this.resetZoom();
+                this.redraw();
+                resolve();
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
     }
 
     animateLeftToRight() {
         if (!this.originalImage) return;
-        if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
-        this.animating = true; this.imageX = -this.originalImage.width; this.isPaused = false;
+        this.animating = true;
+        this.isPaused = false;
+
         const step = () => {
+            if (!this.animating) return;
             if (!this.isPaused) {
                 this.imageX += speed;
                 this.redraw();
             }
 
-            // ✅ EXIT DETECTION LOGIC
             if (this.imageX > this.canvas.width) {
-                console.log(`[${this.domId}] EXIT DETECTED: Image X (${Math.floor(this.imageX)}) > Canvas Width (${this.canvas.width})`);
-                this.animating = false;
-                this.animationFrameId = null;
-
-                if (this.onAnimationEnd) {
-                    console.log(`[${this.domId}] Triggering onAnimationEnd callback...`);
-                    this.onAnimationEnd();
-                }
+                this.stopAnimation();
+                if (this.onAnimationEnd) this.onAnimationEnd();
                 return;
             }
             this.animationFrameId = requestAnimationFrame(step);
         };
-        step();
+        this.animationFrameId = requestAnimationFrame(step);
+    }
+
+    stopAnimation() {
+        this.animating = false;
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
     }
 
     redraw() {
         if (!this.originalImage) return;
-        const img = this.originalImage; this.clearScreen();
-        const drawW = img.width * this.scale; const drawH = img.height * this.scale;
-
-        // --- Added offsetX/offsetY to draw ---
+        this.clearScreen();
+        const img = this.originalImage;
+        const drawW = img.width * this.scale;
+        const drawH = img.height * this.scale;
         const drawX = this.imageX + this.offsetX;
         const drawY = ((this.canvas.height - drawH) / 2) + this.offsetY;
 
         this.ctx.drawImage(img, drawX, drawY, drawW, drawH);
         this.lastDraw = { x: drawX, y: drawY, w: drawW, h: drawH };
+
         if (this.iconPosition) {
-            this.ctx.font = `${40 * this.scale}px Arial`; this.ctx.fillStyle = "red";
-            this.ctx.textAlign = "center"; this.ctx.textBaseline = "middle";
+            this.ctx.font = `${40 * this.scale}px Arial`;
+            this.ctx.fillStyle = "red";
+            this.ctx.textAlign = "center";
+            this.ctx.textBaseline = "middle";
             this.ctx.fillText(ICON_CHAR, this.iconPosition.x, this.iconPosition.y);
         }
     }
 
-    // --- Modified resetZoom to clear dragging too ---
     resetZoom() {
-        this.scale = 1;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.iconPosition = null;
+        this.scale = 1; this.offsetX = 0; this.offsetY = 0; this.iconPosition = null;
     }
 
     togglePause() { this.isPaused = !this.isPaused; }
     setIcon(x, y) { this.iconPosition = { x, y }; this.redraw(); }
 
+    // Imaging Filters
     applyBrightness() { if (!this.originalImage) return; this.redraw(); const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height); const data = imgData.data; for (let i = 0; i < data.length; i += 4) { data[i] = Math.min(255, data[i] * 1.5); data[i + 1] = Math.min(255, data[i + 1] * 1.5); data[i + 2] = Math.min(255, data[i + 2] * 1.5); } this.ctx.putImageData(imgData, 0, 0); }
     applyNegative() { if (!this.originalImage) return; this.redraw(); const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height); const data = imgData.data; for (let i = 0; i < data.length; i += 4) { data[i] = 255 - data[i]; data[i + 1] = 255 - data[i + 1]; data[i + 2] = 255 - data[i + 2]; } this.ctx.putImageData(imgData, 0, 0); }
     applyBlackAndWhite() { if (!this.originalImage) return; this.redraw(); const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height); const data = imgData.data; for (let i = 0; i < data.length; i += 4) { const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; data[i] = data[i + 1] = data[i + 2] = avg; } this.ctx.putImageData(imgData, 0, 0); }
@@ -151,17 +159,17 @@ class _Canvas {
     superEnhance() { if (!this.originalImage) return; this.redraw(); const imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height); const data = imgData.data; const w = imgData.width, h = imgData.height; const copy = new Uint8ClampedArray(data); const gG = (x, y) => { if (x < 0 || x >= w || y < 0 || y >= h) return 0; const i = (y * w + x) * 4; return 0.299 * copy[i] + 0.587 * copy[i + 1] + 0.114 * copy[i + 2]; }; for (let y = 0; y < h; y++) { for (let x = 0; x < w; x++) { const gx = -1 * gG(x - 1, y - 1) + 1 * gG(x + 1, y - 1) - 2 * gG(x - 1, y) + 2 * gG(x + 1, y) - 1 * gG(x - 1, y + 1) + 1 * gG(x + 1, y + 1); const gy = -1 * gG(x - 1, y - 1) - 2 * gG(x, y - 1) - 1 * gG(x + 1, y - 1) + 1 * gG(x - 1, y + 1) + 2 * gG(x, y + 1) + 1 * gG(x + 1, y + 1); const e = Math.sqrt(gx * gx + gy * gy) * 1.5; const i = (y * w + x) * 4; data[i] = Math.min(255, (copy[i] * 1.1) + e - 10); data[i + 1] = Math.min(255, (copy[i + 1] * 1.1) + e - 10); data[i + 2] = Math.min(255, (copy[i + 2] * 1.1) + e - 10); } } this.ctx.putImageData(imgData, 0, 0); }
 }
 
+// --------------------------- Page Component ---------------------------
 export default function Page() {
     const params = useParams();
     const router = useRouter();
-    const area = params.areaid;
-    const typeid = params.typeid;
+    const { areaid: area, typeid, corid } = params;
+
     const [operatorName, setOperatorName] = useState("Loading...");
     const [category, setCategory] = useState([]);
     const [selectedAnswer, setSelectedAnswer] = useState("");
     const [imageIndex, setImageIndex] = useState(0);
     const [imageList, setImageList] = useState([]);
-    const [user, setUser] = useState(null);
     const [timeLeft, setTimeLeft] = useState(courseTime * 60);
     const [isFinished, setIsFinished] = useState(false);
     const [imgFunction, setImgFunction] = useState("Normal");
@@ -170,100 +178,87 @@ export default function Page() {
     const [fars, setFars] = useState(0);
     const [categoryStats, setCategoryStats] = useState({});
     const [wrongAnswers, setWrongAnswers] = useState([]);
-    const [afkStrikes, setAfkStrikes] = useState(0);
+    const [lastClickInside, setLastClickInside] = useState(null);
+
     const leftCanvasRef = useRef(null);
     const rightCanvasRef = useRef(null);
-    const [lastClickInside, setLastClickInside] = useState(null);
-    const afkTimerRef = useRef(null);
 
-    // Initial Load
-    // --------------------------- ปรับปรุงในส่วน Initial Load ---------------------------
+    // Initial Load & Meta
     useEffect(() => {
         const fetchMetadata = async () => {
             try {
                 const profile = await getOperatorProfile();
                 setOperatorName(profile.fullName);
-                setUser(profile);
 
                 const [catRes, imgRes] = await Promise.all([
                     fetch(`${API_URL}/itemCategory`),
                     fetch(`${API_URL}/cbt/random/${area}/${typeid || 'all'}`)
                 ]);
 
-                if (!catRes.ok || !imgRes.ok) throw new Error("Metadata fetch failed");
-
                 let categories = await catRes.json();
                 const imgData = await imgRes.json();
 
-                // 🔥 DYNAMIC EXCLUDE LOGIC
-                // กรองรายการออกตามเงื่อนไข areaId
-                if (area == 2) {
-                    // ตัดรายการที่มี ID เป็น 4 (หรือ index 4 ตามที่คุณต้องการ - แนะนำให้ใช้ ID เพื่อความแม่นยำ)
-                    categories = categories.filter(cat => cat.id !== 5);
-                } else if (area ==3) {
-                    // ตัดรายการที่มี ID เป็น 4 และ 5
-                    categories = categories.filter(cat => cat.id !== 5 && cat.id !== 6);
-                }
+                if (area == 2) categories = categories.filter(cat => cat.id !== 5);
+                else if (area == 3) categories = categories.filter(cat => cat.id !== 5 && cat.id !== 6);
 
                 setCategory(categories);
-
-                // ตั้งค่าเริ่มต้นให้เป็นรายการแรกที่เหลืออยู่
-                if (categories.length > 0) {
-                    setSelectedAnswer(categories[0].id.toString());
-                }
-
+                if (categories.length > 0) setSelectedAnswer(categories[0].id.toString());
                 setImageList(Array.isArray(imgData) ? imgData : [imgData]);
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         };
         fetchMetadata();
-    }, [area, typeid]);
 
-    useEffect(() => {
-        leftCanvasRef.current = new _Canvas("canvasLeft", -820, 0, () => nextImage(false));
-        rightCanvasRef.current = new _Canvas("canvasRight", -820, 0, () => { });
+        leftCanvasRef.current = new _Canvas("canvasLeft", () => nextImage(false));
+        rightCanvasRef.current = new _Canvas("canvasRight", () => { });
         rightCanvasRef.current.debugOffsetY = 177;
         leftCanvasRef.current.start(canvasSize.width, canvasSize.height);
         rightCanvasRef.current.start(canvasSize.width, canvasSize.height);
 
         const handleKey = (e) => {
             const key = e.key.toUpperCase();
-            if (key === "Q") { leftCanvasRef.current.applyBlackAndWhite(); rightCanvasRef.current.applyBlackAndWhite(); setImgFunction("B&W"); }
-            else if (key === "W") { leftCanvasRef.current.applyNegative(); rightCanvasRef.current.applyNegative(); setImgFunction("NEG"); }
-            else if (key === "A") { leftCanvasRef.current.organicOnly(); rightCanvasRef.current.organicOnly(); setImgFunction("O2"); }
-            else if (key === "S") { leftCanvasRef.current.organicStrip(); rightCanvasRef.current.organicStrip(); setImgFunction("OS"); }
-            else if (key === "D") { leftCanvasRef.current.applyBrightness(); rightCanvasRef.current.applyBrightness(); setImgFunction("HI"); }
-            else if (key === "R") { leftCanvasRef.current.resetZoom(); leftCanvasRef.current.redraw(); rightCanvasRef.current.redraw(); setImgFunction("Normal"); }
-            else if (key === "E") { leftCanvasRef.current.superEnhance(); rightCanvasRef.current.superEnhance(); setImgFunction("SEN"); }
-            else if (e.code === "Space") { e.preventDefault(); leftCanvasRef.current.togglePause(); rightCanvasRef.current.togglePause(); }
-        };
-
-        const resetAfk = () => {
-            if (afkTimerRef.current) clearTimeout(afkTimerRef.current);
-            afkTimerRef.current = setTimeout(() => {
-                leftCanvasRef.current.isPaused = rightCanvasRef.current.isPaused = true;
-                setAfkStrikes(s => {
-                    if (s + 1 >= 3) router.push("/");
-                    else {
-                        Swal.fire({ title: "AFK Detected", text: `Strike ${s + 1}/3`, icon: "warning" }).then(() => {
-                            leftCanvasRef.current.isPaused = rightCanvasRef.current.isPaused = false;
-                        });
-                        return s + 1;
-                    }
-                });
-            }, 60000);
+            if (key === "Q") { leftCanvasRef.current?.applyBlackAndWhite(); rightCanvasRef.current?.applyBlackAndWhite(); setImgFunction("B&W"); }
+            else if (key === "W") { leftCanvasRef.current?.applyNegative(); rightCanvasRef.current?.applyNegative(); setImgFunction("NEG"); }
+            else if (key === "A") { leftCanvasRef.current?.organicOnly(); rightCanvasRef.current?.organicOnly(); setImgFunction("O2"); }
+            else if (key === "S") { leftCanvasRef.current?.organicStrip(); rightCanvasRef.current?.organicStrip(); setImgFunction("OS"); }
+            else if (key === "D") { leftCanvasRef.current?.applyBrightness(); rightCanvasRef.current?.applyBrightness(); setImgFunction("HI"); }
+            else if (key === "R") { leftCanvasRef.current?.resetZoom(); leftCanvasRef.current?.redraw(); rightCanvasRef.current?.redraw(); setImgFunction("Normal"); }
+            else if (key === "E") { leftCanvasRef.current?.superEnhance(); rightCanvasRef.current?.superEnhance(); setImgFunction("SEN"); }
+            else if (e.code === "Space") { e.preventDefault(); leftCanvasRef.current?.togglePause(); rightCanvasRef.current?.togglePause(); }
         };
 
         window.addEventListener("keydown", handleKey);
-        window.addEventListener("mousemove", resetAfk);
-        resetAfk();
-        return () => {
-            window.removeEventListener("keydown", handleKey);
-            window.removeEventListener("mousemove", resetAfk);
-        };
-    }, []);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [area, typeid]);
 
+    // Animation & Image Triggering
+    useEffect(() => {
+        if (imageList.length > 0 && !isFinished) {
+            const current = imageList[imageIndex];
+            
+            const trigger = async () => {
+                await Promise.all([
+                    leftCanvasRef.current.drawImageFromURL(`${API_URL}${current.top}`),
+                    rightCanvasRef.current.drawImageFromURL(`${API_URL}${current.side}`)
+                ]);
+                leftCanvasRef.current.animateLeftToRight();
+                rightCanvasRef.current.animateLeftToRight();
+            };
+            trigger();
+        }
+    }, [imageIndex, imageList, isFinished]);
+
+    const nextImage = (wasAnswered = false) => {
+        if (!wasAnswered) setFars(f => f + 1);
+        
+        leftCanvasRef.current?.stopAnimation();
+        rightCanvasRef.current?.stopAnimation();
+        
+        setLastClickInside(null);
+        setImgFunction("Normal");
+        setImageIndex(prev => (prev >= imageList.length - 1 ? 0 : prev + 1));
+    };
+
+    // Timer
     useEffect(() => {
         const timer = setInterval(() => {
             if (timeLeft > 0 && !isFinished) setTimeLeft(t => t - 1);
@@ -272,50 +267,41 @@ export default function Page() {
         return () => clearInterval(timer);
     }, [timeLeft, isFinished]);
 
+    // Interactive Click Handling
     useEffect(() => {
         if (!imageList.length || isFinished) return;
         const current = imageList[imageIndex];
-        leftCanvasRef.current?.drawImageFromURL(`${API_URL}${current.top}`).then(() => leftCanvasRef.current.animateLeftToRight());
-        rightCanvasRef.current?.drawImageFromURL(`${API_URL}${current.side}`).then(() => rightCanvasRef.current.animateLeftToRight());
 
         const handleCanvasClick = (canvasRef, e, imageData) => {
             if (!canvasRef.isPaused) return;
             const rect = canvasRef.canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
+            
+            // Re-calculate based on zoom/pan
             const imageX = (clickX - canvasRef.lastDraw.x) / canvasRef.scale;
             const imageY = ((clickY - canvasRef.lastDraw.y) / canvasRef.scale) - canvasRef.debugOffsetY;
+            
             canvasRef.setIcon(clickX, clickY);
+            
             const itemPos = typeof imageData.itemPos === 'string' ? JSON.parse(imageData.itemPos) : imageData.itemPos;
             if (itemPos) {
-                setLastClickInside(imageX >= itemPos.x && imageX <= itemPos.x + itemPos.w && imageY >= itemPos.y && imageY <= itemPos.y + itemPos.h);
+                const inside = imageX >= itemPos.x && imageX <= itemPos.x + itemPos.w && imageY >= itemPos.y && imageY <= itemPos.y + itemPos.h;
+                setLastClickInside(inside);
             }
         };
 
         const lClick = (e) => handleCanvasClick(leftCanvasRef.current, e, current);
         const rClick = (e) => handleCanvasClick(rightCanvasRef.current, e, current);
-        leftCanvasRef.current.canvas.addEventListener("click", lClick);
-        rightCanvasRef.current.canvas.addEventListener("click", rClick);
+        
+        leftCanvasRef.current?.canvas.addEventListener("click", lClick);
+        rightCanvasRef.current?.canvas.addEventListener("click", rClick);
+        
         return () => {
             leftCanvasRef.current?.canvas.removeEventListener("click", lClick);
             rightCanvasRef.current?.canvas.removeEventListener("click", rClick);
         };
     }, [imageList, imageIndex, isFinished]);
-
-    const nextImage = (wasAnswered = false) => {
-        if (!wasAnswered) setFars(f => f + 1);
-
-        // --- Added: Reset Zoom/Pan on next image ---
-        leftCanvasRef.current?.resetZoom();
-        rightCanvasRef.current?.resetZoom();
-
-        if (category.length > 0) setSelectedAnswer(category[0].id.toString());
-        else setSelectedAnswer("");
-
-        setLastClickInside(null);
-        if (imageIndex >= imageList.length - 1) setImageIndex(0);
-        else setImageIndex(p => p + 1);
-    };
 
     const checkAnswer = () => {
         if (!selectedAnswer || isFinished) return;
@@ -323,6 +309,7 @@ export default function Page() {
         const correctId = currentImage?.itemCategoryID;
         const selectedId = parseInt(selectedAnswer);
 
+        // Correct if: category matches AND (it's "Normal" category 1 OR user clicked inside the bounding box)
         let isCorrect = (correctId === 1) ? (selectedId === 1) : (selectedId === correctId && lastClickInside);
 
         setCategoryStats(prev => {
@@ -347,56 +334,60 @@ export default function Page() {
         nextImage(true);
     };
 
-    const finishGame = async (autoSubmit = false) => {
-        const currentEfficiency = parseFloat(((hits / (hits + fars + 0.0001)) * 100).toFixed(1));
+    const finishGame = async () => {
+        if (isFinished) return;
+        const efficiency = parseFloat(((hits / (hits + fars + 0.0001)) * 100).toFixed(1));
 
-        // 🚀 FIX: Logic to return time credit based on accuracy criteria
-        let calculatedTimeUse = 0;
-        if (currentEfficiency >= 81) {
-            calculatedTimeUse = 20;
-        } else if (currentEfficiency >= 71) {
-            calculatedTimeUse = 16;
-        } else if (currentEfficiency >= 61) {
-            calculatedTimeUse = 14;
-        } else if (currentEfficiency >= 50) {
-            calculatedTimeUse = 12;
-        } else {
-            calculatedTimeUse = 0;
-        }
-
-        const summary = {
-            userId: user?.userID || user?.id,
-            score,
-            hits,
-            fars,
-            efficiency: currentEfficiency,
-            categoryStats,
-            wrongAnswers,
-            userName: operatorName,
-            timeUsed: calculatedTimeUse // ✅ Now returns the correct credit
-        };
+        let earnedMinutes = 0;
+        if (efficiency >= 81) earnedMinutes = 20;
+        else if (efficiency >= 71) earnedMinutes = 16;
+        else if (efficiency >= 61) earnedMinutes = 14;
+        else if (efficiency >= 50) earnedMinutes = 12;
 
         setIsFinished(true);
-        try {
-            localStorage.setItem("session_result", JSON.stringify(summary));
-            const token = localStorage.getItem("token");
-            await fetch(`${API_URL}/training/save`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ...summary,
-                    categoryStats: JSON.stringify(categoryStats),
-                    wrongAnswers: JSON.stringify(wrongAnswers)
-                })
-            });
-        } catch (err) {
-            console.error("Submit error:", err);
-        }
+        leftCanvasRef.current?.stopAnimation();
+        rightCanvasRef.current?.stopAnimation();
 
-        router.push(`/cbt/${area}/${typeid}/summary`);
+        try {
+            const token = localStorage.getItem("token");
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+            // Logic for Corrective mode vs Standard mode
+            if (corid) {
+                await fetch(`${API_URL}/correctivelog`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        correctiveId: parseInt(corid),
+                        score, hits, fars,
+                        hitsRate: efficiency,
+                        time_used: earnedMinutes,
+                        category_stats: JSON.stringify(categoryStats),
+                        wrong_answers: JSON.stringify(wrongAnswers)
+                    })
+                });
+
+                await fetch(`${API_URL}/corrective/${corid}/add-time`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify({ timeEarned: earnedMinutes })
+                });
+            } else {
+                 await fetch(`${API_URL}/training/save`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ 
+                        score, hits, fars, efficiency, 
+                        categoryStats: JSON.stringify(categoryStats), 
+                        wrongAnswers: JSON.stringify(wrongAnswers) 
+                    })
+                });
+            }
+
+            localStorage.setItem("session_result", JSON.stringify({ score, efficiency, earnedMinutes, userName: operatorName }));
+            Swal.fire({ title: "COMPLETED", icon: "success", background: '#111', color: '#fff' })
+                .then(() => router.push(`/cbt/${area}/${typeid}/summary`));
+        } catch (err) { console.error(err); }
     };
 
     const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
@@ -424,7 +415,7 @@ export default function Page() {
                         ))}
                     </select>
 
-                    <button onClick={checkAnswer} className="w-full p-6 bg-red-600 hover:bg-red-700 text-2xl font-black transform hover:skew-x-2 transition-all active:scale-95 shadow-lg shadow-red-600/20 uppercase">
+                    <button onClick={checkAnswer} className="w-full p-6 bg-red-600 hover:bg-red-700 text-2xl font-black transition-all active:scale-95 shadow-lg shadow-red-600/20 uppercase">
                         Confirm
                     </button>
 

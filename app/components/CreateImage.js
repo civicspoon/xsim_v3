@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Swal from 'sweetalert2';
+import ItemRegistration from './ItemRegistoration';
 
 export default function DualViewEditor() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3015';
@@ -14,7 +15,7 @@ export default function DualViewEditor() {
     const [selectedItem, setSelectedItem] = useState(null);
     const [areas, setAreas] = useState([]);
     const [selectedAreaId, setSelectedAreaId] = useState(1);
-
+    const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
     // --- Metadata States ---
     const [baggageCode, setBaggageCode] = useState('');
     const [examType, setExamType] = useState('CBT');
@@ -51,7 +52,7 @@ export default function DualViewEditor() {
         // Reset item selection when changing category
         setSelectedItem(null);
         setImages(p => ({ ...p, itemTop: null, itemSide: null }));
-        
+
         fetch(`${API_URL}/itemImage/category/${selectedCategoryId}`)
             .then(res => res.json())
             .then(setItemList);
@@ -162,10 +163,10 @@ export default function DualViewEditor() {
             const sideB = await new Promise(r => sideCanvasRef.current.toBlob(r, "image/png"));
             formData.append("top", topB, "top.png");
             formData.append("side", sideB, "side.png");
-            
+
             // FIX: Use optional chaining to handle null selectedItem (e.g., in "Clear" mode)
-            formData.append("itemImageID", selectedItem?.id || ""); 
-            
+            formData.append("itemImageID", selectedItem?.id || "");
+
             formData.append("areaID", selectedAreaId);
             formData.append("itemCategoryID", selectedCategoryId);
             formData.append("examType", examType);
@@ -178,6 +179,11 @@ export default function DualViewEditor() {
                 resetEditor();
             } else { const errData = await res.json(); throw new Error(errData.message || "Upload failed"); }
         } catch (error) { Swal.fire('Error', error.message, 'error'); }
+    };
+
+    const closeRegistration = () => {
+        setIsRegistrationOpen(false);
+        // Optional: trigger a refresh of categories/items here if new ones were added
     };
 
     return (
@@ -388,12 +394,53 @@ export default function DualViewEditor() {
                 </div>
 
                 <div className="flex gap-4">
+                    <button
+                        onClick={() => setIsRegistrationOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black px-6 py-3 rounded-xl border border-white/5 transition-all active:scale-95 uppercase flex items-center gap-2"
+                    ></button>
                     <button onClick={resetEditor} className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-black px-6 py-3 rounded-xl border border-white/5 transition-all active:scale-95 uppercase">Clear All</button>
                     <button onClick={uploadCanvas} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black px-8 py-3 rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.3)] uppercase tracking-wider transition-all active:scale-95 flex items-center gap-2 italic">
                         Deploy Simulation <span className="text-[14px]">↗</span>
                     </button>
                 </div>
             </div>
+
+
+
+            {/* --- REGISTRATION MODAL OVERLAY --- */}
+            {isRegistrationOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-6xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+                        {/* Modal Header */}
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+                            <h3 className="text-orange-500 font-black italic uppercase tracking-tighter">System Registry: Item Management</h3>
+                            <button
+                                onClick={closeRegistration}
+                                className="text-slate-500 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full"
+                            >
+                                <span className="text-xl">✕</span>
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                            <ItemRegistration />
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex justify-end">
+                            <button
+                                onClick={closeRegistration}
+                                className="bg-slate-800 text-slate-300 text-[10px] font-black px-6 py-2 rounded-lg uppercase"
+                            >
+                                Close Registry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
         </div>
     );
 }
