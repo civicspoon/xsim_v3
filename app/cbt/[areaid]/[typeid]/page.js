@@ -262,15 +262,32 @@ export default function Page() {
     }, [imageIndex, imageList, category, isFinished]);
 
     // Next Image Logic (Looping)
-    const nextImage = (wasProcessed = false) => {
-        if (!wasProcessed) setFars(f => f + 1);
+    const nextImage = (wasAnswered = false) => {
+        // 1. ถ้าปล่อยให้ภาพเลื่อนผ่านไปโดยไม่กดตอบ (Timeout/Animation End) ให้เพิ่มค่า Fars
+        if (!wasAnswered) {
+            setFars(f => f + 1);
+        }
+
+        // 2. Reset การควบคุมบน Canvas
         leftCanvasRef.current?.resetZoom();
         rightCanvasRef.current?.resetZoom();
-        setLastClickInside(null);
-        if (category.length > 0) setSelectedAnswer(category[0].id.toString());
 
-        // Loop back to start if end of list
-        setImageIndex(prev => (prev >= imageList.length - 1 ? 0 : prev + 1));
+        // 3. Reset สถานะการคลิกและคำตอบ
+        setLastClickInside(null);
+        if (category.length > 0) {
+            setSelectedAnswer(category[0].id.toString());
+        }
+
+        // 4. เปลี่ยนภาพ (Logic การวนกลับไปภาพแรกเมื่อหมด)
+        setImageIndex(prevIndex => {
+            const nextIdx = prevIndex + 1;
+            // ถ้า index ใหม่ เท่ากับหรือมากกว่าจำนวนภาพที่มี ให้กลับไปที่ 0 (ภาพแรก)
+            if (nextIdx >= imageList.length) {
+                console.log("Round complete, restarting from the first image.");
+                return 0;
+            }
+            return nextIdx;
+        });
     };
 
     // Canvas Init
