@@ -17,13 +17,13 @@ const MENU_GROUPS = [
         roles: [1, 2, 3],
         icon: Scan,
         items: [
-            { label: "Dashboard", path: "/pages/dashboard", roles: [1, 2, 3], icon: LayoutDashboard },
-            { label: "X-Ray Simulator (CBT)", path: "/pages/selection", roles: [1, 2, 3], icon: Scan },
-            // { label: "Corrective (CBT)", path: "/pages/CorrectiveList", roles: [1, 2, 3], icon: ShieldCheck },  // Disabled for now
-            { label: "My Training", path: "/pages/training", roles: [1, 2], icon: GraduationCap },
-            { label: "Gallery", path: "/pages/gallery", roles: [1, 2, 3], icon: PlusSquare },
+            { label: "Dashboard", path: "/xsim3/pages/dashboard", roles: [1, 2, 3], icon: LayoutDashboard },
+            { label: "X-Ray Simulator (CBT)", path: "/xsim3/pages/selection", roles: [1, 2, 3], icon: Scan },
+            // { label: "Corrective (CBT)", path: "/xsim3/pages/CorrectiveList", roles: [1, 2, 3], icon: ShieldCheck },  // Disabled for now
+            { label: "My Training", path: "/xsim3/pages/training", roles: [1, 2], icon: GraduationCap },
+            { label: "Gallery", path: "/xsim3/pages/gallery", roles: [1, 2, 3], icon: PlusSquare },
             // ✅ Added User Manual here
-            { label: "User Manual", path: "/pages/manual", roles: [1, 2, 3], icon: BookOpen }, 
+            { label: "User Manual", path: "/xsim3/pages/manual", roles: [1, 2, 3], icon: BookOpen }, 
         ]
     },
     {
@@ -32,11 +32,11 @@ const MENU_GROUPS = [
         roles: [1, 3],
         icon: Users,
         items: [
-            { label: "Create Image", path: "/pages/createimage", roles: [1, 3], icon: PlusSquare },
+            { label: "Create Image", path: "/xsim3/pages/createimage", roles: [1, 3], icon: PlusSquare },
             { label: "Class Management", path: "/instructor/classes", roles: [1, 3], icon: Users },
             { label: "Session Reports", path: "/instructor/reports", roles: [1, 3], icon: BarChart3 },
             { label: "Threat Library", path: "/instructor/library", roles: [1, 3], icon: Skull },
-            { label: "Corrective", path: "/pages/correctiveform", roles: [1, 3], icon: WrenchIcon}
+            { label: "Corrective", path: "/xsim3/pages/correctiveform", roles: [1, 3], icon: WrenchIcon}
         ]
     },
     {

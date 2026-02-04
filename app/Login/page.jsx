@@ -99,7 +99,7 @@ export default function LoginPage() {
   const saveSessionAndRedirect = (data) => {
     localStorage.setItem("token", data.accessToken);
     localStorage.setItem("user", JSON.stringify(data.user));
-    router.push("/pages/dashboard");
+    router.push("/xsim3/pages/dashboard");
   };
 
   return (
