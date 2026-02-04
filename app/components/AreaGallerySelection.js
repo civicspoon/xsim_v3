@@ -85,7 +85,7 @@ export default function AreaGallerySelection() {
             return (
                 <div
                 key={area.id}
-                onClick={() => router.push(`/pages/baggagegallery?areaID=${area.id}`)}
+                onClick={() => router.push(`/xsim3/pages/baggagegallery?areaID=${area.id}`)}
                 style={{ animationDelay: `${index * 150}ms` }}
                 className={`group relative bg-white/3 backdrop-blur-3xl border border-white/5 p-12 rounded-[3.5rem] cursor-pointer transition-all duration-700 hover:-translate-y-3 hover:bg-white/[0.07] hover:border-white/20 animate-in fade-in zoom-in ${config.shadow} hover:shadow-2xl z-10 hover:z-20`}
                 >

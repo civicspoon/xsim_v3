@@ -7,7 +7,7 @@ import {
     ChevronRight, ChevronLeft, Scan, LineChart,
     Users, BarChart3, Skull, Settings,
     LogOut, GraduationCap, WrenchIcon, PlusSquare, ChevronDown, ShieldCheck,
-    LayoutDashboard, BookOpen // ✅ Added BookOpen for Manual
+    LayoutDashboard, BookOpen
 } from "lucide-react";
 
 const MENU_GROUPS = [
@@ -19,10 +19,8 @@ const MENU_GROUPS = [
         items: [
             { label: "Dashboard", path: "/xsim3/pages/dashboard", roles: [1, 2, 3], icon: LayoutDashboard },
             { label: "X-Ray Simulator (CBT)", path: "/xsim3/pages/selection", roles: [1, 2, 3], icon: Scan },
-            // { label: "Corrective (CBT)", path: "/xsim3/pages/CorrectiveList", roles: [1, 2, 3], icon: ShieldCheck },  // Disabled for now
             { label: "My Training", path: "/xsim3/pages/training", roles: [1, 2], icon: GraduationCap },
             { label: "Gallery", path: "/xsim3/pages/gallery", roles: [1, 2, 3], icon: PlusSquare },
-            // ✅ Added User Manual here
             { label: "User Manual", path: "/xsim3/pages/manual", roles: [1, 2, 3], icon: BookOpen }, 
         ]
     },
@@ -86,7 +84,7 @@ const Sidebar = ({ user, setUser }) => {
     const handleLogout = async () => {
         localStorage.clear();
         setUser(null);
-        router.replace("/Login");
+        router.replace("/xsim3/Login");
     };
 
     return (
@@ -161,7 +159,8 @@ const Sidebar = ({ user, setUser }) => {
                                                     }`}
                                             >
                                                 <Icon size={18} className="shrink-0" />
-                                                <span className="font-medium whitespace-nowrap text-xl">{item.label}</span>
+                                                {/* ✅ แก้ไขตรงนี้: เปลี่ยนเป็น text-lg */}
+                                                <span className="font-medium whitespace-nowrap text-lg">{item.label}</span>
                                             </Link>
                                         );
                                     })}

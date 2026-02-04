@@ -14,7 +14,7 @@ function Page() {
     // 2. หน่วงเวลาเล็กน้อย (Optional) เพื่อให้ User เห็นว่ากำลัง Logout 
     // หรือสั่ง Push ไปหน้า Login ทันที
     const timeout = setTimeout(() => {
-      router.push("/Login");
+      router.push("/xsim3/Login");
     }, 800); 
 
     return () => clearTimeout(timeout);

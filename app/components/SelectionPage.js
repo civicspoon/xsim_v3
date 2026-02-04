@@ -51,7 +51,7 @@ export default function SelectionPage() {
 
   const handleFinalNavigate = () => {
     if (selectedArea && selectedCatId) {
-      router.push(`/cbt/${selectedArea.id}/${selectedCatId}`);
+      router.push(`/xsim3/cbt/${selectedArea.id}/${selectedCatId}`);
     }
   };
 

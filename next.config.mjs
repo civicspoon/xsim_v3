@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
-  basePath: '/xsim3',
+  assetPrefix: '/xsim3',
 };
 
 export default nextConfig;

@@ -8,7 +8,7 @@ const ICON_CHAR = "🔍";
 const canvasSize = { width: 850, height: 980 };
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const courseTime = 1; // minutes
-const speed = 2.5; // ปรับความเร็วสายพานตามความเหมาะสม
+const speed = 3; // ปรับความเร็วสายพานตามความเหมาะสม
 
 // --------------------------- Canvas Class ---------------------------
 class _Canvas {
@@ -255,7 +255,7 @@ export default function Page() {
             confirmButtonColor: '#dc2626',
             allowOutsideClick: false
         }).then(() => {
-            router.push(`/cbt/${area}/${typeid}/summary`);
+            router.push(`/xsim3/cbt/${area}/${typeid}/summary`);
         });
 
     }, [score, hits, fars, categoryStats, wrongAnswers, user, area, typeid, timeLeft, isFinished, operatorName, router]);
@@ -435,7 +435,7 @@ export default function Page() {
                     <div><span className="text-[10px] text-gray-400 uppercase font-black">Score</span><p className="text-3xl font-black">{score}</p></div>
                     <div><span className="text-[10px] text-gray-400 uppercase font-black">Efficiency</span><p className="text-3xl font-black text-blue-400">{((hits / (hits + fars + 0.0001)) * 100).toFixed(0)}%</p></div>
                 </div>
-                <button onClick={() => router.push("/dashboard")} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase transition-all">Abort Mission</button>
+                <button onClick={() => router.push("/xsim3/dashboard")} className="bg-red-600/10 border border-red-600/20 px-6 py-3 rounded-xl text-xs font-black hover:bg-red-600 uppercase transition-all">Abort Mission</button>
             </div>
         </div>
     );

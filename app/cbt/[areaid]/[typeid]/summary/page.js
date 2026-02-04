@@ -25,7 +25,7 @@ export default function SummaryPage() {
 
     const terminateSession = () => {
         localStorage.removeItem("session_result");
-        router.push("/pages/dashboard");
+        router.push("/xsim3/pages/dashboard");
     };
 
     useEffect(() => {
