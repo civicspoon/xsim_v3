@@ -157,10 +157,10 @@ const ManualPage = () => {
             {[
               { key: 'Q', label: 'B&W', sub: 'ขาว-ดำ', color: 'bg-white/10' },
               { key: 'W', label: 'NEG', sub: 'ภาพเนกาทีฟ', color: 'bg-white/10' },
-              { key: 'E', label: 'SEN', sub: 'เพิ่มความคมชัด', color: 'bg-blue-600/20' },
-              { key: 'A', label: 'O2', sub: 'แยกวัตถุอินทรีย์', color: 'bg-orange-600/20' },
-              { key: 'S', label: 'OS', sub: 'ตัดสารอินทรีย์', color: 'bg-green-600/20' },
-              { key: 'D', label: 'HI', sub: 'เน้นความหนาแน่น', color: 'bg-yellow-600/20' },
+              { key: 'E', label: 'SEN', sub: 'เพิ่มความต่างความหนาแน่นวัตถุ', color: 'bg-blue-600/20' },
+              { key: 'A', label: 'O2', sub: 'ดูเฉพาะสารอินทรีย์', color: 'bg-orange-600/20' },
+              { key: 'S', label: 'OS', sub: 'ทำให้สารอินทรีย์หายไป', color: 'bg-green-600/20' },
+              { key: 'D', label: 'HI', sub: 'เพิ่มความสว่าง 50%', color: 'bg-yellow-600/20' },
               { key: 'R', label: 'Reset', sub: 'รีเซ็ตภาพ/ซูม', color: 'bg-red-600/20' },
               { key: 'Space', label: 'Pause', sub: 'หยุด/เริ่มสายพาน', color: 'bg-white/10' },
             ].map((item) => (
