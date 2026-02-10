@@ -11,7 +11,7 @@ const ManualPage = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full bg-[#050505]/90 text-white font-sans selection:bg-red-600/30 overflow-y-auto scroll-smooth">
+    <div className="fixed inset-0 w-full bg-[#050505]/95 text-white font-sans selection:bg-red-600/30 overflow-y-auto scroll-smooth">
       
       {/* --- TOP FIXED NAV --- */}
       <nav className="fixed top-0 left-0 right-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/5 px-6 py-4">
